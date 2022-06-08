@@ -15,8 +15,6 @@ pub struct AudioState {
     hit_handle: Handle<AudioSource>,
     reward_handle: Handle<AudioSource>,
     bgm_volume: f32,
-    combat_volume: f32,
-    sfx_volume: f32,
 }
 
 impl Plugin for GameAudioPlugin {
@@ -114,7 +112,5 @@ fn load_audio(
         hit_handle,
         reward_handle,
         bgm_volume,
-        combat_volume,
-        sfx_volume,
     })
 }
