@@ -9,7 +9,7 @@ use bevy_inspector_egui::Inspectable;
 
 pub struct CombatPlugin;
 
-#[derive(Component)]
+#[derive(Component, Inspectable)]
 pub struct Enemy {
     enemy_type: EnemyType,
 }
@@ -61,7 +61,7 @@ pub struct AttackEffects {
 #[derive(Component)]
 pub struct CombatText;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Inspectable)]
 pub enum EnemyType {
     Bat,
     Ghost,

@@ -1,5 +1,6 @@
 use crate::combat::EnemyType;
 use bevy::prelude::*;
+use bevy_inspector_egui::Inspectable;
 
 pub struct GraphicsPlugin;
 
@@ -13,6 +14,7 @@ pub struct CharacterSheet {
     pub ghost_frames: [usize; 3],
 }
 
+#[derive(Inspectable)]
 pub enum FacingDirection {
     Up,
     Down,
@@ -20,12 +22,13 @@ pub enum FacingDirection {
     Right,
 }
 
-#[derive(Component)]
+#[derive(Component, Inspectable)]
 pub struct PlayerGraphics {
     pub facing: FacingDirection,
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect, Default)]
+#[reflect(Component)]
 pub struct FrameAnimation {
     pub(crate) timer: Timer,
     pub(crate) frames: Vec<usize>,
