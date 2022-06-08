@@ -1,7 +1,7 @@
-use bevy::prelude::*;
-use bevy_inspector_egui::{RegisterInspectable, WorldInspectorPlugin};
 use crate::combat::CombatStats;
 use crate::player::{EncounterTracker, Player};
+use bevy::prelude::*;
+use bevy_inspector_egui::{RegisterInspectable, WorldInspectorPlugin};
 
 pub struct DebugPlugin;
 

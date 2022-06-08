@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::TILE_SIZE;
+use bevy::prelude::*;
 
 pub struct AsciiPlugin;
 
@@ -51,11 +51,12 @@ pub fn spawn_ascii_text(
             char as usize,
             color,
             Vec3::new(i as f32 * TILE_SIZE, 0.0, 0.0),
-                Vec3::splat(1.0),
+            Vec3::splat(1.0),
         ));
     }
 
-    commands.spawn()
+    commands
+        .spawn()
         .insert(Name::new(format!("Text - {}", to_print)))
         .insert(AsciiText)
         .insert(Transform {
@@ -79,16 +80,18 @@ pub fn spawn_ascii_sprite(
     sprite.color = color;
     sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
 
-    commands.spawn_bundle(SpriteSheetBundle {
-        sprite,
-        texture_atlas: ascii.0.clone(),
-        transform: Transform {
-            translation,
-            scale,
+    commands
+        .spawn_bundle(SpriteSheetBundle {
+            sprite,
+            texture_atlas: ascii.0.clone(),
+            transform: Transform {
+                translation,
+                scale,
+                ..default()
+            },
             ..default()
-        },
-        ..default()
-    }).id()
+        })
+        .id()
 }
 
 #[derive(Component)]
@@ -195,7 +198,6 @@ pub fn spawn_nine_slice(
         .push_children(&sprites)
         .id()
 }
-
 
 fn load_ascii(
     mut commands: Commands,

@@ -1,9 +1,9 @@
-use std::fs::File;
-use std::io::{BufReader, BufRead};
-use bevy::prelude::*;
-use crate::ascii::{AsciiSheet, spawn_ascii_sprite};
-use crate::{GameState, TILE_SIZE};
+use crate::ascii::{spawn_ascii_sprite, AsciiSheet};
 use crate::npc::Npc;
+use crate::{GameState, TILE_SIZE};
+use bevy::prelude::*;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 pub struct TileMapPlugin;
 
@@ -18,13 +18,11 @@ pub struct TileCollider;
 
 impl Plugin for TileMapPlugin {
     fn build(&self, app: &mut App) {
-        app
+        app.add_system_set(SystemSet::on_resume(GameState::Overworld).with_system(show_map))
+            .add_system_set(SystemSet::on_pause(GameState::Overworld).with_system(hide_map))
             .add_system_set(
-                SystemSet::on_resume(GameState::Overworld).with_system(show_map))
-            .add_system_set(
-                SystemSet::on_pause(GameState::Overworld).with_system(hide_map))
-            .add_system_set(
-                SystemSet::on_enter(GameState::Overworld).with_system(create_simple_map));
+                SystemSet::on_enter(GameState::Overworld).with_system(create_simple_map),
+            );
     }
 }
 
@@ -86,7 +84,10 @@ fn create_simple_map(mut commands: Commands, ascii: Res<AsciiSheet>) {
                 }
 
                 if char == '@' {
-                    commands.entity(tile).insert(Npc::Healer).insert(TileCollider);
+                    commands
+                        .entity(tile)
+                        .insert(Npc::Healer)
+                        .insert(TileCollider);
                 }
 
                 tiles.push(tile);
@@ -94,7 +95,8 @@ fn create_simple_map(mut commands: Commands, ascii: Res<AsciiSheet>) {
         }
     }
 
-    commands.spawn()
+    commands
+        .spawn()
         .insert(Map)
         .insert(Name::new("Map"))
         .insert(Transform::default())

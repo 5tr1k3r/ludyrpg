@@ -1,9 +1,11 @@
+use crate::ascii::{
+    spawn_ascii_sprite, spawn_ascii_text, spawn_nine_slice, AsciiSheet, NineSliceIndices,
+};
+use crate::combat::CombatStats;
+use crate::player::Player;
+use crate::{GameState, CLEAR, TILE_SIZE};
 use bevy::prelude::*;
 use bevy::render::camera::Camera2d;
-use crate::ascii::{AsciiSheet, NineSliceIndices, spawn_ascii_sprite, spawn_ascii_text, spawn_nine_slice};
-use crate::player::Player;
-use crate::{CLEAR, GameState, TILE_SIZE};
-use crate::combat::CombatStats;
 
 pub struct NpcPlugin;
 

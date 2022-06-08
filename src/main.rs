@@ -1,27 +1,27 @@
-mod player;
-mod debug;
 mod ascii;
-mod tilemap;
-mod combat;
-mod fadeout;
 mod audio;
+mod combat;
+mod debug;
+mod fadeout;
 mod graphics;
-mod start_menu;
 mod npc;
+mod player;
+mod start_menu;
+mod tilemap;
 
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
 
-use player::PlayerPlugin;
-use debug::DebugPlugin;
-use ascii::AsciiPlugin;
-use tilemap::TileMapPlugin;
 use crate::audio::GameAudioPlugin;
 use crate::combat::CombatPlugin;
 use crate::fadeout::FadeoutPlugin;
 use crate::graphics::GraphicsPlugin;
 use crate::npc::NpcPlugin;
 use crate::start_menu::MainMenuPlugin;
+use ascii::AsciiPlugin;
+use debug::DebugPlugin;
+use player::PlayerPlugin;
+use tilemap::TileMapPlugin;
 
 pub const CLEAR: Color = Color::rgb(0.1, 0.1, 0.1);
 pub const RESOLUTION: f32 = 16.0 / 9.0;

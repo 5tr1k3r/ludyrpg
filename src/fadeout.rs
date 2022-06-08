@@ -1,6 +1,6 @@
-use bevy::prelude::*;
 use crate::ascii::AsciiSheet;
 use crate::GameState;
+use bevy::prelude::*;
 
 pub struct FadeoutPlugin;
 
@@ -14,9 +14,7 @@ struct ScreenFade {
 
 impl Plugin for FadeoutPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_system(ui_fadeout)
-            .add_system(fadeout);
+        app.add_system(ui_fadeout).add_system(fadeout);
     }
 }
 
@@ -54,7 +52,7 @@ fn fadeout(
         sprite.color.set_a(fade.alpha);
 
         if fade.timer.percent() > 0.5 && !fade.sent {
-            if let Some(next_state) = fade.next_state{
+            if let Some(next_state) = fade.next_state {
                 state.push(next_state).unwrap();
             } else {
                 state.pop().unwrap();
@@ -71,21 +69,22 @@ fn fadeout(
 pub fn create_fadeout(
     commands: &mut Commands,
     next_state: Option<GameState>,
-    ascii: &Res<AsciiSheet>
+    ascii: &Res<AsciiSheet>,
 ) {
     let mut sprite = TextureAtlasSprite::new(0);
     sprite.color = Color::rgba(0.1, 0.1, 0.15, 0.0);
     sprite.custom_size = Some(Vec2::splat(100000.0));
 
-    commands.spawn_bundle(SpriteSheetBundle {
-        sprite,
-        texture_atlas: ascii.0.clone(),
-        transform: Transform {
-            translation: Vec3::new(0.0, 0.0, 999.0),
+    commands
+        .spawn_bundle(SpriteSheetBundle {
+            sprite,
+            texture_atlas: ascii.0.clone(),
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.0, 999.0),
+                ..default()
+            },
             ..default()
-        },
-        ..default()
-    })
+        })
         .insert(ScreenFade {
             alpha: 0.0,
             sent: false,

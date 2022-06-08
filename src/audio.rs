@@ -1,7 +1,7 @@
-use bevy::prelude::*;
-use bevy_kira_audio::{AudioApp, AudioChannel, AudioPlugin, AudioSource};
 use crate::combat::{CombatState, FightEvent};
 use crate::GameState;
+use bevy::prelude::*;
+use bevy_kira_audio::{AudioApp, AudioChannel, AudioPlugin, AudioSource};
 
 pub struct GameAudioPlugin;
 
@@ -21,8 +21,7 @@ pub struct AudioState {
 
 impl Plugin for GameAudioPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugin(AudioPlugin)
+        app.add_plugin(AudioPlugin)
             .add_audio_channel::<BgmChannel>()
             .add_audio_channel::<CombatChannel>()
             .add_audio_channel::<SfxChannel>()
@@ -30,22 +29,13 @@ impl Plugin for GameAudioPlugin {
             .add_startup_system(start_bgm_music)
             .add_system(bgm_volume_control)
             .add_system(play_hit_sfx)
-            .add_system_set(
-                SystemSet::on_enter(GameState::Combat)
-                    .with_system(start_combat_music))
-            .add_system_set(
-                SystemSet::on_enter(CombatState::Reward)
-                    .with_system(play_reward_sfx))
-            .add_system_set(
-                SystemSet::on_exit(GameState::Combat)
-                    .with_system(stop_combat_music));
+            .add_system_set(SystemSet::on_enter(GameState::Combat).with_system(start_combat_music))
+            .add_system_set(SystemSet::on_enter(CombatState::Reward).with_system(play_reward_sfx))
+            .add_system_set(SystemSet::on_exit(GameState::Combat).with_system(stop_combat_music));
     }
 }
 
-fn play_reward_sfx(
-    sfx_channel: Res<AudioChannel<SfxChannel>>,
-    audio_state: Res<AudioState>,
-) {
+fn play_reward_sfx(sfx_channel: Res<AudioChannel<SfxChannel>>, audio_state: Res<AudioState>) {
     sfx_channel.play(audio_state.reward_handle.clone());
 }
 
@@ -77,10 +67,7 @@ fn bgm_volume_control(
     bgm_channel.set_volume(audio_state.bgm_volume);
 }
 
-fn start_bgm_music(
-    bgm_channel: Res<AudioChannel<BgmChannel>>,
-    audio_state: Res<AudioState>,
-) {
+fn start_bgm_music(bgm_channel: Res<AudioChannel<BgmChannel>>, audio_state: Res<AudioState>) {
     bgm_channel.play_looped(audio_state.bgm_handle.clone());
 }
 

@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::combat::EnemyType;
+use bevy::prelude::*;
 
 pub struct GraphicsPlugin;
 
@@ -60,17 +60,18 @@ pub fn spawn_enemy_sprite(
     let animation = FrameAnimation {
         timer: Timer::from_seconds(0.2, true),
         frames,
-        current_frame: 0
+        current_frame: 0,
     };
 
-    commands.spawn_bundle(SpriteSheetBundle {
-        sprite,
-        texture_atlas: characters.handle.clone(),
-        transform: Transform {
-            translation,
+    commands
+        .spawn_bundle(SpriteSheetBundle {
+            sprite,
+            texture_atlas: characters.handle.clone(),
+            transform: Transform {
+                translation,
+                ..default()
+            },
             ..default()
-        },
-        ..default()
         })
         .insert(animation)
         .id()
@@ -80,16 +81,19 @@ impl GraphicsPlugin {
     fn load_graphics(
         mut commands: Commands,
         assets: Res<AssetServer>,
-        mut texture_atlases: ResMut<Assets<TextureAtlas>>
+        mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     ) {
         let columns = 12;
 
         let image = assets.load("characters.png");
-        let atlas = TextureAtlas::from_grid_with_padding(image, Vec2::splat(16.0),
-                                                         columns, 8,
-                                                         Vec2::splat(2.0));
+        let atlas = TextureAtlas::from_grid_with_padding(
+            image,
+            Vec2::splat(16.0),
+            columns,
+            8,
+            Vec2::splat(2.0),
+        );
         let atlas_handle = texture_atlases.add(atlas);
-
 
         commands.insert_resource(CharacterSheet {
             handle: atlas_handle,
@@ -104,7 +108,7 @@ impl GraphicsPlugin {
 
     fn update_player_graphics(
         mut sprites_query: Query<(&PlayerGraphics, &mut FrameAnimation), Changed<PlayerGraphics>>,
-        characters: Res<CharacterSheet>
+        characters: Res<CharacterSheet>,
     ) {
         for (graphics, mut animation) in sprites_query.iter_mut() {
             animation.frames = match graphics.facing {
