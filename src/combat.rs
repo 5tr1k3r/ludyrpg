@@ -480,7 +480,7 @@ fn spawn_enemy(mut commands: Commands, ascii: Res<AsciiSheet>, characters: Res<C
         &mut commands,
         &characters,
         Vec3::new(0.0, 0.6, 100.0),
-        enemy_type.clone(),
+        enemy_type,
     );
 
     commands
