@@ -15,7 +15,7 @@ pub struct PlayerPlugin;
 pub struct Player {
     speed: f32,
     pub(crate) active: bool,
-    just_moved: bool,
+    pub(crate) just_moved: bool,
     pub exp: usize,
 }
 
@@ -153,19 +153,23 @@ fn player_movement(
     let mut y_delta = 0.0;
     if keyboard.pressed(KeyCode::W) {
         y_delta += TILE_SIZE * player.speed * time.delta_seconds();
+        player_graphics.facing = FacingDirection::Up;
     }
 
     if keyboard.pressed(KeyCode::S) {
         y_delta -= TILE_SIZE * player.speed * time.delta_seconds();
+        player_graphics.facing = FacingDirection::Down;
     }
 
     let mut x_delta = 0.0;
     if keyboard.pressed(KeyCode::A) {
         x_delta -= TILE_SIZE * player.speed * time.delta_seconds();
+        player_graphics.facing = FacingDirection::Left;
     }
 
     if keyboard.pressed(KeyCode::D) {
         x_delta += TILE_SIZE * player.speed * time.delta_seconds();
+        player_graphics.facing = FacingDirection::Right;
     }
 
     let target = transform.translation + Vec3::new(x_delta, 0.0, 0.0);
@@ -175,11 +179,6 @@ fn player_movement(
     {
         if x_delta != 0.0 {
             player.just_moved = true;
-            if x_delta > 0.0 {
-                player_graphics.facing = FacingDirection::Right;
-            } else {
-                player_graphics.facing = FacingDirection::Left;
-            }
         }
         transform.translation = target;
     }
@@ -191,11 +190,6 @@ fn player_movement(
     {
         if y_delta != 0.0 {
             player.just_moved = true;
-            if y_delta > 0.0 {
-                player_graphics.facing = FacingDirection::Up;
-            } else {
-                player_graphics.facing = FacingDirection::Down;
-            }
         }
         transform.translation = target;
     }
