@@ -49,6 +49,7 @@ pub enum CombatState {
     EnemyAttack,
     Reward,
     Exiting,
+    Dead,
 }
 
 pub struct AttackEffects {
@@ -348,11 +349,11 @@ fn damage_calculation(
     ascii: Res<AsciiSheet>,
     mut fight_event: EventReader<FightEvent>,
     text_query: Query<&Transform, With<CombatText>>,
-    mut target_query: Query<(&Children, &mut CombatStats)>,
+    mut target_query: Query<(&Children, &mut CombatStats, Option<&mut Player>)>,
     mut combat_state: ResMut<State<CombatState>>,
 ) {
     for event in fight_event.iter() {
-        let (target_children, mut target_stats) = target_query
+        let (target_children, mut target_stats, player_option) = target_query
             .get_mut(event.target)
             .expect("Fight target without stats!");
 
@@ -379,7 +380,10 @@ fn damage_calculation(
         }
 
         if target_stats.health == 0 {
-            combat_state.set(CombatState::Reward).unwrap();
+            match player_option {
+                Some(_) => combat_state.set(CombatState::Dead).unwrap(),
+                None => combat_state.set(CombatState::Reward).unwrap(),
+            };
         } else {
             combat_state.set(event.next_state).unwrap();
         }

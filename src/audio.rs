@@ -6,7 +6,9 @@ use bevy_kira_audio::{AudioApp, AudioChannel, AudioPlugin, AudioSource};
 pub struct GameAudioPlugin;
 
 struct BgmChannel;
+
 struct CombatChannel;
+
 struct SfxChannel;
 
 pub struct AudioState {
@@ -14,6 +16,7 @@ pub struct AudioState {
     combat_handle: Handle<AudioSource>,
     hit_handle: Handle<AudioSource>,
     reward_handle: Handle<AudioSource>,
+    death_handle: Handle<AudioSource>,
     bgm_volume: f32,
 }
 
@@ -29,8 +32,15 @@ impl Plugin for GameAudioPlugin {
             .add_system(play_hit_sfx)
             .add_system_set(SystemSet::on_enter(GameState::Combat).with_system(start_combat_music))
             .add_system_set(SystemSet::on_enter(CombatState::Reward).with_system(play_reward_sfx))
+            .add_system_set(SystemSet::on_enter(CombatState::Dead).with_system(play_death_sfx))
             .add_system_set(SystemSet::on_exit(GameState::Combat).with_system(stop_combat_music));
     }
+}
+
+fn play_death_sfx(combat_channel: Res<AudioChannel<CombatChannel>>, audio_state: Res<AudioState>) {
+    combat_channel.stop();
+    combat_channel.set_volume(0.4);
+    combat_channel.play(audio_state.death_handle.clone());
 }
 
 fn play_reward_sfx(sfx_channel: Res<AudioChannel<SfxChannel>>, audio_state: Res<AudioState>) {
@@ -97,6 +107,7 @@ fn load_audio(
     let combat_handle = assets.load("ganxta.ogg");
     let hit_handle = assets.load("hit.wav");
     let reward_handle = assets.load("reward.wav");
+    let death_handle = assets.load("dead.wav");
 
     let bgm_volume = 0.05;
     let combat_volume = 0.2;
@@ -111,6 +122,7 @@ fn load_audio(
         combat_handle,
         hit_handle,
         reward_handle,
+        death_handle,
         bgm_volume,
     })
 }
