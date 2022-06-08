@@ -8,6 +8,7 @@ mod npc;
 mod player;
 mod start_menu;
 mod tilemap;
+mod game_over;
 
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
@@ -22,6 +23,7 @@ use ascii::AsciiPlugin;
 use debug::DebugPlugin;
 use player::PlayerPlugin;
 use tilemap::TileMapPlugin;
+use crate::game_over::GameOverPlugin;
 
 pub const CLEAR: Color = Color::rgb(0.1, 0.1, 0.1);
 pub const RESOLUTION: f32 = 16.0 / 9.0;
@@ -57,6 +59,7 @@ fn main() {
         .add_plugin(GraphicsPlugin)
         .add_plugin(MainMenuPlugin)
         .add_plugin(NpcPlugin)
+        .add_plugin(GameOverPlugin)
         .add_startup_system(spawn_camera)
         .run();
 }
