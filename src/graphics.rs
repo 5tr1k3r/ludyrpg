@@ -1,7 +1,7 @@
 use crate::combat::EnemyType;
+use crate::player::Player;
 use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
-use crate::player::Player;
 
 pub struct GraphicsPlugin;
 
@@ -125,14 +125,18 @@ impl GraphicsPlugin {
     }
 
     fn frame_animation(
-        mut sprites_query: Query<(&mut TextureAtlasSprite, &mut FrameAnimation, Option<&Player>)>,
+        mut sprites_query: Query<(
+            &mut TextureAtlasSprite,
+            &mut FrameAnimation,
+            Option<&Player>,
+        )>,
         time: Res<Time>,
     ) {
         for (mut sprite, mut animation, player_option) in sprites_query.iter_mut() {
             let current_frame = match player_option {
                 // if standing still, only show the middle sprite (index 1 out of [0, 1, 2])
                 Some(player) if !player.just_moved => 1,
-                _ => (animation.current_frame + 1) % animation.frames.len()
+                _ => (animation.current_frame + 1) % animation.frames.len(),
             };
 
             animation.timer.tick(time.delta());

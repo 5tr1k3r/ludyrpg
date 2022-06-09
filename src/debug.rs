@@ -1,8 +1,8 @@
 use crate::combat::{CombatStats, Enemy};
+use crate::graphics::{FrameAnimation, PlayerGraphics};
 use crate::player::{EncounterTracker, Player};
 use bevy::prelude::*;
 use bevy_inspector_egui::{RegisterInspectable, WorldInspectorPlugin};
-use crate::graphics::{FrameAnimation, PlayerGraphics};
 
 pub struct DebugPlugin;
 

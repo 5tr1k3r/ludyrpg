@@ -3,27 +3,27 @@ mod audio;
 mod combat;
 mod debug;
 mod fadeout;
+mod game_over;
 mod graphics;
 mod npc;
 mod player;
 mod start_menu;
 mod tilemap;
-mod game_over;
 
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
 
+use crate::ascii::AsciiPlugin;
 use crate::audio::GameAudioPlugin;
 use crate::combat::CombatPlugin;
+use crate::debug::DebugPlugin;
 use crate::fadeout::FadeoutPlugin;
+use crate::game_over::GameOverPlugin;
 use crate::graphics::GraphicsPlugin;
 use crate::npc::NpcPlugin;
+use crate::player::PlayerPlugin;
 use crate::start_menu::MainMenuPlugin;
-use ascii::AsciiPlugin;
-use debug::DebugPlugin;
-use player::PlayerPlugin;
-use tilemap::TileMapPlugin;
-use crate::game_over::GameOverPlugin;
+use crate::tilemap::TileMapPlugin;
 
 pub const CLEAR: Color = Color::rgb(0.1, 0.1, 0.1);
 pub const RESOLUTION: f32 = 16.0 / 9.0;

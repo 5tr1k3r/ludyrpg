@@ -1,23 +1,21 @@
-use bevy::prelude::*;
-use bevy::render::camera::Camera2d;
-use crate::ascii::{AsciiSheet, spawn_ascii_text};
+use crate::ascii::{spawn_ascii_text, AsciiSheet};
 use crate::combat::CombatState;
 use crate::TILE_SIZE;
+use bevy::prelude::*;
+use bevy::render::camera::Camera2d;
 
 pub struct GameOverPlugin;
 
 impl Plugin for GameOverPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_system_set(SystemSet::on_enter(CombatState::Dead).with_system(show_game_over_screen))
-            .add_system_set(SystemSet::on_update(CombatState::Dead).with_system(zoom_into_center));
+        app.add_system_set(
+            SystemSet::on_enter(CombatState::Dead).with_system(show_game_over_screen),
+        )
+        .add_system_set(SystemSet::on_update(CombatState::Dead).with_system(zoom_into_center));
     }
 }
 
-fn show_game_over_screen(
-    mut commands: Commands,
-    ascii: Res<AsciiSheet>,
-) {
+fn show_game_over_screen(mut commands: Commands, ascii: Res<AsciiSheet>) {
     let text = "GAME OVER";
     spawn_ascii_text(
         &mut commands,
@@ -27,10 +25,7 @@ fn show_game_over_screen(
     );
 }
 
-fn zoom_into_center(
-    mut camera_query: Query<&mut Transform, With<Camera2d>>,
-    time: Res<Time>,
-) {
+fn zoom_into_center(mut camera_query: Query<&mut Transform, With<Camera2d>>, time: Res<Time>) {
     let mut camera_transform = camera_query.single_mut();
     let step = 0.3;
     if camera_transform.scale.x > 0.3 {
