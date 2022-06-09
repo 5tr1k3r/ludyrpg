@@ -2,6 +2,7 @@ use crate::ascii::AsciiSheet;
 use crate::fadeout::create_fadeout;
 use crate::GameState;
 use bevy::prelude::*;
+use bevy::render::camera::Camera2d;
 use bevy::ui::FocusPolicy;
 
 pub struct MainMenuPlugin;
@@ -19,7 +20,15 @@ impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_menu)
             .add_system_set(SystemSet::on_pause(GameState::StartMenu).with_system(despawn_menu))
+            .add_system_set(SystemSet::on_update(GameState::Overworld).with_system(return_to_menu))
+            .add_system_set(SystemSet::on_enter(GameState::StartMenu).with_system(spawn_menu))
             .add_system(handle_start_button);
+    }
+}
+
+fn return_to_menu(mut commands: Commands, ascii: Res<AsciiSheet>, keyboard: Res<Input<KeyCode>>) {
+    if keyboard.just_pressed(KeyCode::Escape) {
+        create_fadeout(&mut commands, Some(GameState::StartMenu), &ascii);
     }
 }
 
@@ -64,6 +73,17 @@ fn setup_menu(mut commands: Commands, assets: Res<AssetServer>) {
         button: assets.load("img/button.png"),
         button_pressed: assets.load("img/button_pressed.png"),
     };
+    commands.insert_resource(ui_assets);
+}
+
+fn spawn_menu(
+    mut commands: Commands,
+    ui_assets: Res<UiAssets>,
+    entity_query: Query<Entity, Without<Camera2d>>,
+) {
+    for ent in entity_query.iter() {
+        commands.entity(ent).despawn_recursive();
+    }
 
     commands.spawn_bundle(UiCameraBundle::default());
     commands
@@ -111,6 +131,4 @@ fn setup_menu(mut commands: Commands, assets: Res<AssetServer>) {
                     });
                 });
         });
-
-    commands.insert_resource(ui_assets);
 }
