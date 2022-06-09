@@ -147,11 +147,11 @@ fn load_audio(
     combat_channel: Res<AudioChannel<CombatChannel>>,
     sfx_channel: Res<AudioChannel<SfxChannel>>,
 ) {
-    let bgm_handle = assets.load("bip-bop.ogg");
-    let combat_handle = assets.load("ganxta.ogg");
-    let hit_handle = assets.load("hit.wav");
-    let reward_handle = assets.load("reward.wav");
-    let death_handle = assets.load("dead.wav");
+    let bgm_handle = assets.load("music/bip-bop.ogg");
+    let combat_handle = assets.load("music/ganxta.ogg");
+    let hit_handle = assets.load("sounds/hit.wav");
+    let reward_handle = assets.load("sounds/reward.wav");
+    let death_handle = assets.load("sounds/dead.wav");
 
     let bgm_volume = 0.05;
     let combat_volume = 0.2;
