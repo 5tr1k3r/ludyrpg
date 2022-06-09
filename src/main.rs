@@ -10,6 +10,7 @@ mod player;
 mod start_menu;
 mod tilemap;
 
+use bevy::log::LogSettings;
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
 
@@ -46,6 +47,10 @@ fn main() {
             height,
             title: "Game".to_string(),
             resizable: false,
+            ..default()
+        })
+        .insert_resource(LogSettings {
+            filter: "wgpu=error,symphonia=warn".to_string(),
             ..default()
         })
         .add_plugins(DefaultPlugins)
