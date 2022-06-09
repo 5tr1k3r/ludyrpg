@@ -1,7 +1,10 @@
 use crate::combat::{CombatState, FightEvent};
+use crate::player::{Player, WalkedGroundType};
 use crate::GameState;
 use bevy::prelude::*;
 use bevy_kira_audio::{AudioApp, AudioChannel, AudioPlugin, AudioSource};
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 
 pub struct GameAudioPlugin;
 
@@ -20,6 +23,14 @@ pub struct AudioState {
     bgm_volume: f32,
 }
 
+struct NormalFootsteps(Vec<Handle<AudioSource>>);
+
+struct GrassFootsteps(Vec<Handle<AudioSource>>);
+
+struct FootstepsTimer {
+    timer: Timer,
+}
+
 impl Plugin for GameAudioPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(AudioPlugin)
@@ -33,8 +44,41 @@ impl Plugin for GameAudioPlugin {
             .add_system_set(SystemSet::on_enter(GameState::Combat).with_system(start_combat_music))
             .add_system_set(SystemSet::on_enter(CombatState::Reward).with_system(play_reward_sfx))
             .add_system_set(SystemSet::on_enter(CombatState::Dead).with_system(play_death_sfx))
+            .add_system_set(
+                SystemSet::on_update(GameState::Overworld).with_system(play_footsteps_sfx),
+            )
             .add_system_set(SystemSet::on_exit(GameState::Combat).with_system(stop_combat_music));
     }
+}
+
+fn play_footsteps_sfx(
+    normal_footsteps: Res<NormalFootsteps>,
+    grass_footsteps: Res<GrassFootsteps>,
+    mut footsteps_timer: ResMut<FootstepsTimer>,
+    sfx_channel: Res<AudioChannel<SfxChannel>>,
+    player_query: Query<&Player>,
+    time: Res<Time>,
+) {
+    let player = player_query.single();
+    if !player.just_moved {
+        return;
+    }
+
+    footsteps_timer.timer.tick(time.delta());
+    if footsteps_timer.timer.just_finished() {
+        let fs_sound = match player.walked_ground_type {
+            WalkedGroundType::Normal => pick_random_sound(&normal_footsteps.0),
+            WalkedGroundType::Grass => pick_random_sound(&grass_footsteps.0),
+        };
+        sfx_channel.play(fs_sound.clone());
+    }
+}
+
+//noinspection RsTypeCheck
+fn pick_random_sound(sounds: &Vec<Handle<AudioSource>>) -> Handle<AudioSource> {
+    let mut rng = thread_rng();
+
+    sounds.choose(&mut rng).unwrap().clone()
 }
 
 fn play_death_sfx(combat_channel: Res<AudioChannel<CombatChannel>>, audio_state: Res<AudioState>) {
@@ -124,5 +168,33 @@ fn load_audio(
         reward_handle,
         death_handle,
         bgm_volume,
-    })
+    });
+
+    let normal_footsteps: Vec<Handle<AudioSource>> = [
+        "sounds/footstep_concrete_000.ogg",
+        "sounds/footstep_concrete_001.ogg",
+        "sounds/footstep_concrete_002.ogg",
+        "sounds/footstep_concrete_003.ogg",
+        "sounds/footstep_concrete_004.ogg",
+    ]
+    .iter()
+    .map(|&name| assets.load(name))
+    .collect();
+
+    let grass_footsteps: Vec<Handle<AudioSource>> = [
+        "sounds/footstep_grass_000.ogg",
+        "sounds/footstep_grass_001.ogg",
+        "sounds/footstep_grass_002.ogg",
+        "sounds/footstep_grass_003.ogg",
+        "sounds/footstep_grass_004.ogg",
+    ]
+    .iter()
+    .map(|&name| assets.load(name))
+    .collect();
+
+    commands.insert_resource(NormalFootsteps(normal_footsteps));
+    commands.insert_resource(GrassFootsteps(grass_footsteps));
+    commands.insert_resource(FootstepsTimer {
+        timer: Timer::from_seconds(0.35, true),
+    });
 }

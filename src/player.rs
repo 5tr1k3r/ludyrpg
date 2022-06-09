@@ -16,6 +16,7 @@ pub struct Player {
     speed: f32,
     pub(crate) active: bool,
     pub(crate) just_moved: bool,
+    pub(crate) walked_ground_type: WalkedGroundType,
     pub exp: usize,
 }
 
@@ -25,12 +26,19 @@ pub struct EncounterTracker {
     timer: Timer,
 }
 
+#[derive(Inspectable)]
+pub enum WalkedGroundType {
+    Normal,
+    Grass,
+}
+
 impl Default for Player {
     fn default() -> Self {
         Player {
             speed: 3.0,
             active: true,
             just_moved: false,
+            walked_ground_type: WalkedGroundType::Normal,
             exp: 0,
         }
     }
@@ -118,12 +126,15 @@ fn player_encounter_checking(
             .iter()
             .any(|&transform| wall_collision_check(player_translation, transform.translation))
     {
+        player.walked_ground_type = WalkedGroundType::Grass;
         encounter_tracker.timer.tick(time.delta());
 
         if encounter_tracker.timer.just_finished() {
             player.active = false;
             create_fadeout(&mut commands, Some(GameState::Combat), &ascii);
         }
+    } else if player.just_moved {
+        player.walked_ground_type = WalkedGroundType::Normal;
     }
 }
 
