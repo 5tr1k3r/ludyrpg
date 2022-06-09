@@ -89,7 +89,7 @@ pub fn create_fadeout(
             alpha: 0.0,
             sent: false,
             next_state,
-            timer: Timer::from_seconds(1.0, false),
+            timer: Timer::from_seconds(0.7, false),
         })
         .insert(Name::new("Fadeout"));
 }

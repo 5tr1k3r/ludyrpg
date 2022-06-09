@@ -72,7 +72,7 @@ impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
         app.add_state(CombatState::PlayerTurn)
             .insert_resource(AttackEffects {
-                timer: Timer::from_seconds(0.7, true),
+                timer: Timer::from_seconds(0.4, true),
                 flash_speed: 0.1,
                 screen_shake_amount: 0.1,
                 current_shake: 0.0,
