@@ -70,7 +70,7 @@ fn play_footsteps_sfx(
             WalkedGroundType::Normal => pick_random_sound(&normal_footsteps.0),
             WalkedGroundType::Grass => pick_random_sound(&grass_footsteps.0),
         };
-        sfx_channel.play(fs_sound.clone());
+        sfx_channel.play(fs_sound);
     }
 }
 
