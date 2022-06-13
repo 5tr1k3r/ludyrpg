@@ -83,7 +83,10 @@ fn pick_random_sound(sounds: &Vec<Handle<AudioSource>>) -> Handle<AudioSource> {
     sounds.choose(&mut rng).unwrap().clone()
 }
 
-fn play_death_sfx(combat_music_channel: Res<AudioChannel<CombatMusicChannel>>, audio_state: Res<AudioState>) {
+fn play_death_sfx(
+    combat_music_channel: Res<AudioChannel<CombatMusicChannel>>,
+    audio_state: Res<AudioState>,
+) {
     combat_music_channel.stop();
     combat_music_channel.set_volume(0.4);
     combat_music_channel.play(audio_state.death_handle.clone());
@@ -134,8 +137,6 @@ fn bgm_volume_control(
 
         audio_state.is_muted = !audio_state.is_muted;
     }
-
-
 }
 
 fn start_bgm_music(bgm_channel: Res<AudioChannel<BgmChannel>>, audio_state: Res<AudioState>) {

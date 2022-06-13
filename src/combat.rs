@@ -355,21 +355,17 @@ fn process_attack(
         let resulting_damage = std::cmp::max(event.damage_amount - target_stats.defense, 0);
 
         let mut target_is_player = false;
-        match player_option {
-            Some(mut player) => {
-                target_is_player = true;
-                let big_hit_threshold = 0.35;
-                let dmg_relative_to_max_hp =
-                    resulting_damage as f32 / target_stats.max_health as f32;
-                let mut trauma = 1.0;
-                if dmg_relative_to_max_hp < big_hit_threshold {
-                    trauma = dmg_relative_to_max_hp / big_hit_threshold;
-                }
-
-                player.trauma += trauma;
-                player.trauma = player.trauma.clamp(0.0, 1.0);
+        if let Some(mut player) = player_option {
+            target_is_player = true;
+            let big_hit_threshold = 0.35;
+            let dmg_relative_to_max_hp = resulting_damage as f32 / target_stats.max_health as f32;
+            let mut trauma = 1.0;
+            if dmg_relative_to_max_hp < big_hit_threshold {
+                trauma = dmg_relative_to_max_hp / big_hit_threshold;
             }
-            _ => (),
+
+            player.trauma += trauma;
+            player.trauma = player.trauma.clamp(0.0, 1.0);
         }
 
         target_stats.health = std::cmp::max(target_stats.health - resulting_damage, 0);
