@@ -6,6 +6,7 @@ use crate::{GameState, RESOLUTION, TILE_SIZE};
 use bevy::prelude::*;
 use bevy::render::camera::Camera2d;
 use bevy_inspector_egui::Inspectable;
+use rand::{thread_rng, Rng};
 
 pub struct CombatPlugin;
 
@@ -14,7 +15,7 @@ pub struct Enemy {
     enemy_type: EnemyType,
 }
 
-pub struct FightEvent {
+pub struct AttackEvent {
     target: Entity,
     pub damage_amount: isize,
     next_state: CombatState,
@@ -55,8 +56,6 @@ pub enum CombatState {
 pub struct AttackEffects {
     timer: Timer,
     flash_speed: f32,
-    screen_shake_amount: f32,
-    current_shake: f32,
 }
 
 #[derive(Component)]
@@ -74,10 +73,8 @@ impl Plugin for CombatPlugin {
             .insert_resource(AttackEffects {
                 timer: Timer::from_seconds(0.4, true),
                 flash_speed: 0.1,
-                screen_shake_amount: 0.1,
-                current_shake: 0.0,
             })
-            .add_event::<FightEvent>()
+            .add_event::<AttackEvent>()
             .insert_resource(CombatMenuSelection {
                 selected: CombatMenuOption::Fight,
             })
@@ -86,9 +83,9 @@ impl Plugin for CombatPlugin {
             )
             .add_system_set(
                 SystemSet::on_update(GameState::Combat)
-                    .with_system(damage_calculation)
+                    .with_system(process_attack)
                     .with_system(combat_input)
-                    .with_system(combat_camera)
+                    .with_system(shake_camera_based_on_trauma)
                     .with_system(highlight_combat_buttons),
             )
             .add_system_set(
@@ -211,9 +208,6 @@ fn handle_attack_effects(
         } else {
             enemy_sprite.is_visible = true;
         }
-    } else {
-        attack_fx.current_shake = attack_fx.screen_shake_amount
-            * f32::sin(attack_fx.timer.percent() * 2.0 * std::f32::consts::PI);
     }
 
     if attack_fx.timer.just_finished() {
@@ -232,7 +226,7 @@ fn start_combat(mut combat_state: ResMut<State<CombatState>>) {
 }
 
 fn process_enemy_turn(
-    mut fight_event: EventWriter<FightEvent>,
+    mut attack_event: EventWriter<AttackEvent>,
     mut combat_state: ResMut<State<CombatState>>,
     enemy_query: Query<&CombatStats, With<Enemy>>,
     player_query: Query<Entity, With<Player>>,
@@ -241,7 +235,7 @@ fn process_enemy_turn(
     //todo support multiple enemies
     let enemy_stats = enemy_query.iter().next().unwrap();
 
-    fight_event.send(FightEvent {
+    attack_event.send(AttackEvent {
         target: player_ent,
         damage_amount: enemy_stats.attack,
         next_state: CombatState::EnemyAttack,
@@ -344,21 +338,39 @@ fn spawn_combat_menu(
     );
 }
 
-fn damage_calculation(
+fn process_attack(
     mut commands: Commands,
     ascii: Res<AsciiSheet>,
-    mut fight_event: EventReader<FightEvent>,
+    mut attack_event: EventReader<AttackEvent>,
     text_query: Query<&Transform, With<CombatText>>,
     mut target_query: Query<(&Children, &mut CombatStats, Option<&mut Player>)>,
     mut combat_state: ResMut<State<CombatState>>,
 ) {
-    for event in fight_event.iter() {
+    for event in attack_event.iter() {
         let (target_children, mut target_stats, player_option) = target_query
             .get_mut(event.target)
             .expect("Fight target without stats!");
 
         // Lowest damage possible is 0 so we don't heal the target instead
         let resulting_damage = std::cmp::max(event.damage_amount - target_stats.defense, 0);
+
+        let mut target_is_player = false;
+        match player_option {
+            Some(mut player) => {
+                target_is_player = true;
+                let big_hit_threshold = 0.35;
+                let dmg_relative_to_max_hp =
+                    resulting_damage as f32 / target_stats.max_health as f32;
+                let mut trauma = 1.0;
+                if dmg_relative_to_max_hp < big_hit_threshold {
+                    trauma = dmg_relative_to_max_hp / big_hit_threshold;
+                }
+
+                player.trauma += trauma;
+                player.trauma = player.trauma.clamp(0.0, 1.0);
+            }
+            _ => (),
+        }
 
         target_stats.health = std::cmp::max(target_stats.health - resulting_damage, 0);
 
@@ -380,13 +392,68 @@ fn damage_calculation(
         }
 
         if target_stats.health == 0 {
-            match player_option {
-                Some(_) => combat_state.set(CombatState::Dead).unwrap(),
-                None => combat_state.set(CombatState::Reward).unwrap(),
-            };
+            if target_is_player {
+                combat_state.set(CombatState::Dead).unwrap();
+            } else {
+                combat_state.set(CombatState::Reward).unwrap();
+            }
         } else {
             combat_state.set(event.next_state).unwrap();
         }
+    }
+}
+
+#[allow(unused)]
+fn test_give_player_trauma(mut player_query: Query<&mut Player>, keyboard: Res<Input<KeyCode>>) {
+    if keyboard.just_pressed(KeyCode::Key1) {
+        let mut player = player_query.single_mut();
+        player.trauma += 0.1;
+        player.trauma = player.trauma.clamp(0.0, 1.0);
+    }
+    if keyboard.just_pressed(KeyCode::Key2) {
+        let mut player = player_query.single_mut();
+        player.trauma += 0.2;
+        player.trauma = player.trauma.clamp(0.0, 1.0);
+    }
+    if keyboard.just_pressed(KeyCode::Key3) {
+        let mut player = player_query.single_mut();
+        player.trauma += 0.3;
+        player.trauma = player.trauma.clamp(0.0, 1.0);
+    }
+    if keyboard.just_pressed(KeyCode::Key4) {
+        let mut player = player_query.single_mut();
+        player.trauma += 0.4;
+        player.trauma = player.trauma.clamp(0.0, 1.0);
+    }
+    if keyboard.just_pressed(KeyCode::Key5) {
+        let mut player = player_query.single_mut();
+        player.trauma += 0.5;
+        player.trauma = player.trauma.clamp(0.0, 1.0);
+    }
+    if keyboard.just_pressed(KeyCode::Key6) {
+        let mut player = player_query.single_mut();
+        player.trauma += 0.6;
+        player.trauma = player.trauma.clamp(0.0, 1.0);
+    }
+    if keyboard.just_pressed(KeyCode::Key7) {
+        let mut player = player_query.single_mut();
+        player.trauma += 0.7;
+        player.trauma = player.trauma.clamp(0.0, 1.0);
+    }
+    if keyboard.just_pressed(KeyCode::Key8) {
+        let mut player = player_query.single_mut();
+        player.trauma += 0.8;
+        player.trauma = player.trauma.clamp(0.0, 1.0);
+    }
+    if keyboard.just_pressed(KeyCode::Key9) {
+        let mut player = player_query.single_mut();
+        player.trauma += 0.9;
+        player.trauma = player.trauma.clamp(0.0, 1.0);
+    }
+    if keyboard.just_pressed(KeyCode::Key0) {
+        let mut player = player_query.single_mut();
+        player.trauma += 1.0;
+        player.trauma = player.trauma.clamp(0.0, 1.0);
     }
 }
 
@@ -394,7 +461,7 @@ fn combat_input(
     mut commands: Commands,
     ascii: Res<AsciiSheet>,
     keyboard: Res<Input<KeyCode>>,
-    mut fight_event: EventWriter<FightEvent>,
+    mut fight_event: EventWriter<AttackEvent>,
     player_query: Query<&CombatStats, With<Player>>,
     enemy_query: Query<Entity, With<Enemy>>,
     mut menu_state: ResMut<CombatMenuSelection>,
@@ -427,7 +494,7 @@ fn combat_input(
                 let player_stats = player_query.single();
                 //todo handle multiple enemies and enemy selection
                 let target = enemy_query.iter().next().unwrap();
-                fight_event.send(FightEvent {
+                fight_event.send(AttackEvent {
                     target,
                     damage_amount: player_stats.attack,
                     next_state: CombatState::PlayerAttack,
@@ -441,13 +508,37 @@ fn combat_input(
     }
 }
 
-fn combat_camera(
+fn shake_camera_based_on_trauma(
+    mut player_query: Query<&mut Player>,
     mut camera_query: Query<&mut Transform, With<Camera2d>>,
-    attack_fx: Res<AttackEffects>,
+    time: Res<Time>,
 ) {
     let mut camera_transform = camera_query.single_mut();
-    camera_transform.translation.x = attack_fx.current_shake;
+    let mut player = player_query.single_mut();
+
+    camera_transform.translation.x = 0.0;
     camera_transform.translation.y = 0.0;
+    camera_transform.rotation = Quat::IDENTITY;
+
+    if player.trauma > 0.0 {
+        let mut rng = thread_rng();
+        let shake_amount = player.trauma * player.trauma;
+        let max_angle = 15.0f32.to_radians();
+        let max_offset = 0.2;
+
+        let angle = max_angle * shake_amount * rng.gen_range(-1.0..1.0);
+        let offset_x = max_offset * shake_amount * rng.gen_range(-1.0..1.0);
+        let offset_y = max_offset * shake_amount * rng.gen_range(-1.0..1.0);
+
+        camera_transform.translation.x += offset_x;
+        camera_transform.translation.y += offset_y;
+        camera_transform.rotation *= Quat::from_rotation_z(angle);
+
+        // full (1.0) trauma expires in 0.71s
+        player.trauma -= 1.4 * time.delta_seconds();
+    } else if player.trauma < 0.0 {
+        player.trauma = 0.0;
+    }
 }
 
 fn spawn_enemy(mut commands: Commands, ascii: Res<AsciiSheet>, characters: Res<CharacterSheet>) {

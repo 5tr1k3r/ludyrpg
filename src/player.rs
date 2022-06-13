@@ -18,6 +18,7 @@ pub struct Player {
     pub(crate) just_moved: bool,
     pub(crate) walked_ground_type: WalkedGroundType,
     pub exp: usize,
+    pub(crate) trauma: f32,
 }
 
 #[derive(Component, Default, Reflect)]
@@ -40,6 +41,7 @@ impl Default for Player {
             just_moved: false,
             walked_ground_type: WalkedGroundType::Normal,
             exp: 0,
+            trauma: 0.0,
         }
     }
 }

@@ -1,4 +1,4 @@
-use crate::combat::{CombatState, FightEvent};
+use crate::combat::{AttackEvent, CombatState};
 use crate::player::{Player, WalkedGroundType};
 use crate::GameState;
 use bevy::prelude::*;
@@ -94,9 +94,9 @@ fn play_reward_sfx(sfx_channel: Res<AudioChannel<SfxChannel>>, audio_state: Res<
 fn play_hit_sfx(
     sfx_channel: Res<AudioChannel<SfxChannel>>,
     audio_state: Res<AudioState>,
-    mut fight_event: EventReader<FightEvent>,
+    mut attack_event: EventReader<AttackEvent>,
 ) {
-    if fight_event.iter().count() > 0 {
+    if attack_event.iter().count() > 0 {
         sfx_channel.play(audio_state.hit_handle.clone());
     }
 }
