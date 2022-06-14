@@ -12,6 +12,10 @@ pub struct OverworldCameraData {
 }
 
 const CAMERA_STEP: f32 = 1.5;
+const SHAKE_MAX_ANGLE: f32 = 15.0;
+const SHAKE_MAX_OFFSET: f32 = 0.2;
+const GAME_OVER_ZOOM_STEP: f32 = 0.3;
+const GAME_OVER_ZOOM_THRESHOLD: f32 = 0.3;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
@@ -27,7 +31,7 @@ impl Plugin for CameraPlugin {
             .add_system_set(
                 SystemSet::on_resume(GameState::Overworld).with_system(restore_camera_scale),
             )
-            .add_system_set(SystemSet::on_update(CombatState::Dead).with_system(zoom_into_center))
+            .add_system_set(SystemSet::on_update(CombatState::Dead).with_system(zoom_into_game_over_text))
             .add_system_set(
                 SystemSet::on_update(GameState::Combat).with_system(shake_camera_based_on_trauma),
             );
@@ -92,12 +96,10 @@ fn shake_camera_based_on_trauma(
     if player.trauma > 0.0 {
         let mut rng = thread_rng();
         let shake_amount = player.trauma * player.trauma;
-        let max_angle = 15.0f32.to_radians();
-        let max_offset = 0.2;
 
-        let angle = max_angle * shake_amount * rng.gen_range(-1.0..1.0);
-        let offset_x = max_offset * shake_amount * rng.gen_range(-1.0..1.0);
-        let offset_y = max_offset * shake_amount * rng.gen_range(-1.0..1.0);
+        let angle = SHAKE_MAX_ANGLE.to_radians() * shake_amount * rng.gen_range(-1.0..1.0);
+        let offset_x = SHAKE_MAX_OFFSET * shake_amount * rng.gen_range(-1.0..1.0);
+        let offset_y = SHAKE_MAX_OFFSET * shake_amount * rng.gen_range(-1.0..1.0);
 
         camera_transform.translation.x += offset_x;
         camera_transform.translation.y += offset_y;
@@ -105,12 +107,11 @@ fn shake_camera_based_on_trauma(
     }
 }
 
-fn zoom_into_center(mut camera_query: Query<&mut Transform, With<Camera2d>>, time: Res<Time>) {
+fn zoom_into_game_over_text(mut camera_query: Query<&mut Transform, With<Camera2d>>, time: Res<Time>) {
     let mut camera_transform = camera_query.single_mut();
-    let step = 0.3;
-    if camera_transform.scale.x > 0.3 {
-        camera_transform.scale.x -= step * time.delta_seconds();
-        camera_transform.scale.y -= step * time.delta_seconds();
+    if camera_transform.scale.x > GAME_OVER_ZOOM_THRESHOLD {
+        camera_transform.scale.x -= GAME_OVER_ZOOM_STEP * time.delta_seconds();
+        camera_transform.scale.y -= GAME_OVER_ZOOM_STEP * time.delta_seconds();
     }
 }
 
