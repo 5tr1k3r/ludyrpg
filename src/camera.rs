@@ -7,14 +7,44 @@ use rand::{thread_rng, Rng};
 
 pub struct CameraPlugin;
 
+pub struct OverworldCameraData {
+    scale: Vec3,
+}
+
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(SystemSet::on_enter(GameState::Overworld).with_system(spawn_camera))
-            .add_system_set(SystemSet::on_update(CombatState::Dead).with_system(zoom_into_center))
+        app.insert_resource(OverworldCameraData { scale: Vec3::ONE })
+            .add_system_set(
+                SystemSet::on_enter(GameState::Overworld).with_system(spawn_camera))
+            .add_system_set(
+                SystemSet::on_pause(GameState::Overworld).with_system(save_and_reset_camera_scale),
+            )
+            .add_system_set(
+                SystemSet::on_resume(GameState::Overworld).with_system(restore_camera_scale),
+            )
+            .add_system_set(
+                SystemSet::on_update(CombatState::Dead).with_system(zoom_into_center))
             .add_system_set(
                 SystemSet::on_update(GameState::Combat).with_system(shake_camera_based_on_trauma),
             );
     }
+}
+
+fn save_and_reset_camera_scale(
+    mut camera_query: Query<&mut Transform, With<Camera2d>>,
+    mut overworld_camera_data: ResMut<OverworldCameraData>,
+) {
+    let mut camera_transform = camera_query.single_mut();
+    overworld_camera_data.scale = camera_transform.scale;
+    camera_transform.scale = Vec3::ONE;
+}
+
+fn restore_camera_scale(
+    mut camera_query: Query<&mut Transform, With<Camera2d>>,
+    overworld_camera_data: Res<OverworldCameraData>,
+) {
+    let mut camera_transform = camera_query.single_mut();
+    camera_transform.scale = overworld_camera_data.scale;
 }
 
 fn shake_camera_based_on_trauma(
@@ -27,7 +57,6 @@ fn shake_camera_based_on_trauma(
     camera_transform.translation.x = 0.0;
     camera_transform.translation.y = 0.0;
     camera_transform.rotation = Quat::IDENTITY;
-    // camera_transform.scale = Vec3::ONE;
 
     if player.trauma > 0.0 {
         let mut rng = thread_rng();
