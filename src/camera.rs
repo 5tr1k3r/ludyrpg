@@ -1,5 +1,5 @@
 use crate::combat::CombatState;
-use crate::player::Player;
+use crate::player::{player_movement, Player};
 use crate::{GameState, RESOLUTION};
 use bevy::prelude::*;
 use bevy::render::camera::{Camera2d, ScalingMode};
@@ -11,22 +11,53 @@ pub struct OverworldCameraData {
     scale: Vec3,
 }
 
+const CAMERA_STEP: f32 = 1.5;
+
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(OverworldCameraData { scale: Vec3::ONE })
+            .add_system_set(SystemSet::on_enter(GameState::Overworld).with_system(spawn_camera))
             .add_system_set(
-                SystemSet::on_enter(GameState::Overworld).with_system(spawn_camera))
+                SystemSet::on_update(GameState::Overworld)
+                    .with_system(camera_movement.after(player_movement)),
+            )
             .add_system_set(
                 SystemSet::on_pause(GameState::Overworld).with_system(save_and_reset_camera_scale),
             )
             .add_system_set(
                 SystemSet::on_resume(GameState::Overworld).with_system(restore_camera_scale),
             )
-            .add_system_set(
-                SystemSet::on_update(CombatState::Dead).with_system(zoom_into_center))
+            .add_system_set(SystemSet::on_update(CombatState::Dead).with_system(zoom_into_center))
             .add_system_set(
                 SystemSet::on_update(GameState::Combat).with_system(shake_camera_based_on_trauma),
             );
+    }
+}
+
+fn camera_movement(
+    player_query: Query<&Transform, With<Player>>,
+    mut camera_query: Query<&mut Transform, (Without<Player>, With<Camera2d>)>,
+    keyboard: Res<Input<KeyCode>>,
+    time: Res<Time>,
+) {
+    let player_transform = player_query.single();
+    let mut camera_transform = camera_query.single_mut();
+
+    camera_transform.translation.x = player_transform.translation.x;
+    camera_transform.translation.y = player_transform.translation.y;
+
+    if keyboard.pressed(KeyCode::NumpadAdd) {
+        let step = CAMERA_STEP * time.delta_seconds();
+        camera_transform.scale *= Vec3::new(1.0 - step, 1.0 - step, 1.0);
+    }
+
+    if keyboard.pressed(KeyCode::NumpadSubtract) {
+        let step = CAMERA_STEP * time.delta_seconds();
+        camera_transform.scale *= Vec3::new(1.0 + step, 1.0 + step, 1.0);
+    }
+
+    if keyboard.pressed(KeyCode::Home) {
+        camera_transform.scale = Vec3::ONE;
     }
 }
 

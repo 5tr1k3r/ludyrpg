@@ -5,7 +5,6 @@ use crate::graphics::{CharacterSheet, FacingDirection, FrameAnimation, PlayerGra
 use crate::tilemap::{EncounterSpawner, TileCollider};
 use crate::{GameState, TILE_SIZE};
 use bevy::prelude::*;
-use bevy::render::camera::Camera2d;
 use bevy::sprite::collide_aabb::collide;
 use bevy_inspector_egui::Inspectable;
 
@@ -32,8 +31,6 @@ pub enum WalkedGroundType {
     Normal,
     Grass,
 }
-
-const CAMERA_STEP: f32 = 1.5;
 
 impl Default for Player {
     fn default() -> Self {
@@ -73,7 +70,6 @@ impl Plugin for PlayerPlugin {
             .add_system_set(
                 SystemSet::on_update(GameState::Overworld)
                     .with_system(player_movement)
-                    .with_system(camera_movement.after(player_movement))
                     .with_system(player_encounter_checking.after(player_movement)),
             )
             .add_system_set(SystemSet::on_enter(GameState::Overworld).with_system(spawn_player))
@@ -153,34 +149,7 @@ fn player_encounter_checking(
     }
 }
 
-fn camera_movement(
-    player_query: Query<&Transform, With<Player>>,
-    mut camera_query: Query<&mut Transform, (Without<Player>, With<Camera2d>)>,
-    keyboard: Res<Input<KeyCode>>,
-    time: Res<Time>,
-) {
-    let player_transform = player_query.single();
-    let mut camera_transform = camera_query.single_mut();
-
-    camera_transform.translation.x = player_transform.translation.x;
-    camera_transform.translation.y = player_transform.translation.y;
-
-    if keyboard.pressed(KeyCode::NumpadAdd) {
-        let step = CAMERA_STEP * time.delta_seconds();
-        camera_transform.scale *= Vec3::new(1.0 - step, 1.0 - step, 1.0);
-    }
-
-    if keyboard.pressed(KeyCode::NumpadSubtract) {
-        let step = CAMERA_STEP * time.delta_seconds();
-        camera_transform.scale *= Vec3::new(1.0 + step, 1.0 + step, 1.0);
-    }
-
-    if keyboard.pressed(KeyCode::Home) {
-        camera_transform.scale = Vec3::ONE;
-    }
-}
-
-fn player_movement(
+pub fn player_movement(
     mut player_query: Query<(&mut Player, &mut Transform, &mut PlayerGraphics)>,
     wall_query: Query<&Transform, (With<TileCollider>, Without<Player>)>,
     keyboard: Res<Input<KeyCode>>,
