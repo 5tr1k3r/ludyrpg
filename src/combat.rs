@@ -82,6 +82,7 @@ impl Plugin for CombatPlugin {
             })
             .add_event::<AttackEvent>()
             .add_event::<LevelupEvent>()
+            .add_event::<ExpReceivedEvent>()
             .insert_resource(CombatMenuSelection {
                 selected: CombatMenuOption::Fight,
             })
@@ -156,6 +157,7 @@ fn give_reward(
     enemy_query: Query<&Enemy>,
     mut keyboard: ResMut<Input<KeyCode>>,
     mut ev_levelup: EventWriter<LevelupEvent>,
+    mut ev_exp_received: EventWriter<ExpReceivedEvent>,
 ) {
     keyboard.clear();
 
@@ -192,6 +194,9 @@ fn give_reward(
         );
         commands.entity(text).insert(CombatText);
     }
+
+    let levelup_percentage = player.exp as f32 / player.xp_required_for_current_level() as f32;
+    ev_exp_received.send(ExpReceivedEvent { levelup_percentage });
 }
 
 fn despawn_all_combat_text(mut commands: Commands, text_query: Query<Entity, With<CombatText>>) {

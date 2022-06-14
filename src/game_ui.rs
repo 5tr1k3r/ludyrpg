@@ -1,4 +1,4 @@
-use crate::combat::LevelupEvent;
+use crate::combat::{ExpReceivedEvent, LevelupEvent};
 use crate::GameState;
 use bevy::prelude::*;
 
@@ -13,6 +13,9 @@ pub struct UiAssets {
 #[derive(Component)]
 pub struct LevelupText;
 
+#[derive(Component)]
+pub struct ExpBar;
+
 impl Plugin for GameUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(setup_ui)
@@ -22,8 +25,20 @@ impl Plugin for GameUiPlugin {
                     .with_system(spawn_exp_bar),
             )
             .add_system_set(
-                SystemSet::on_update(GameState::Combat).with_system(handle_levelup_event),
+                SystemSet::on_update(GameState::Combat)
+                    .with_system(handle_levelup_event)
+                    .with_system(handle_exp_received_event),
             );
+    }
+}
+
+fn handle_exp_received_event(
+    mut ev_exp_received: EventReader<ExpReceivedEvent>,
+    mut exp_bar_query: Query<&mut Style, With<ExpBar>>,
+) {
+    for event in ev_exp_received.iter() {
+        let mut exp_bar = exp_bar_query.single_mut();
+        exp_bar.size.width = Val::Percent(event.levelup_percentage * 100.0);
     }
 }
 
@@ -37,13 +52,37 @@ fn handle_levelup_event(
     }
 }
 
-fn spawn_exp_bar() {}
+fn spawn_exp_bar(mut commands: Commands) {
+    let style = Style {
+        position_type: PositionType::Absolute,
+        position: Rect {
+            left: Val::Auto,
+            right: Val::Auto,
+            top: Val::Auto,
+            bottom: Val::Percent(0.0),
+        },
+        size: Size {
+            width: Val::Percent(0.0),
+            height: Val::Percent(1.0),
+        },
+        ..default()
+    };
+
+    commands
+        .spawn_bundle(ImageBundle {
+            style,
+            color: UiColor::from(Color::GOLD),
+            ..default()
+        })
+        .insert(Name::new("Exp Bar"))
+        .insert(ExpBar);
+}
 
 fn spawn_level_text(mut commands: Commands, ui_assets: Res<UiAssets>) {
     let text_style = TextStyle {
         font: ui_assets.font.clone(),
-        font_size: 35.0,
-        color: Color::WHITE,
+        font_size: 20.0,
+        color: Color::GOLD,
     };
 
     let text_alignment = TextAlignment {
@@ -57,7 +96,7 @@ fn spawn_level_text(mut commands: Commands, ui_assets: Res<UiAssets>) {
             left: Val::Auto,
             right: Val::Auto,
             top: Val::Auto,
-            bottom: Val::Percent(2.0),
+            bottom: Val::Percent(1.1),
         },
         ..default()
     };
