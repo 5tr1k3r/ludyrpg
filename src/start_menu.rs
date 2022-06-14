@@ -2,6 +2,7 @@ use crate::ascii::AsciiSheet;
 use crate::audio::{AudioState, BgmChannel};
 use crate::combat::CombatState;
 use crate::fadeout::create_fadeout;
+use crate::game_ui::UiAssets;
 use crate::GameState;
 use bevy::prelude::*;
 use bevy::ui::FocusPolicy;
@@ -9,19 +10,12 @@ use bevy_kira_audio::AudioChannel;
 
 pub struct MainMenuPlugin;
 
-struct UiAssets {
-    font: Handle<Font>,
-    button: Handle<Image>,
-    button_pressed: Handle<Image>,
-}
-
 #[derive(Component)]
 pub struct ButtonActive(bool);
 
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_menu)
-            .add_system_set(SystemSet::on_pause(GameState::StartMenu).with_system(despawn_menu))
+        app.add_system_set(SystemSet::on_pause(GameState::StartMenu).with_system(despawn_menu))
             .add_system_set(SystemSet::on_update(GameState::Overworld).with_system(return_to_menu))
             .add_system_set(SystemSet::on_update(CombatState::Dead).with_system(return_to_menu))
             .add_system_set(
@@ -35,12 +29,12 @@ impl Plugin for MainMenuPlugin {
 
 fn reset_game(
     mut commands: Commands,
-    entity_query: Query<Entity>,
+    entity_query: Query<Entity, Without<CameraUi>>,
     mut combat_state: ResMut<State<CombatState>>,
     bgm_channel: Res<AudioChannel<BgmChannel>>,
     audio_state: Res<AudioState>,
 ) {
-    // Despawn all entities
+    // Despawn all entities except UI camera
     for ent in entity_query.iter() {
         commands.entity(ent).despawn_recursive();
     }
@@ -96,17 +90,7 @@ fn handle_start_button(
     }
 }
 
-fn setup_menu(mut commands: Commands, assets: Res<AssetServer>) {
-    let ui_assets = UiAssets {
-        font: assets.load("fonts/QuattrocentoSans-Bold.ttf"),
-        button: assets.load("img/button.png"),
-        button_pressed: assets.load("img/button_pressed.png"),
-    };
-    commands.insert_resource(ui_assets);
-}
-
 fn spawn_menu(mut commands: Commands, ui_assets: Res<UiAssets>) {
-    commands.spawn_bundle(UiCameraBundle::default());
     commands
         .spawn_bundle(ButtonBundle {
             node: Default::default(),

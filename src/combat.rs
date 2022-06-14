@@ -19,6 +19,14 @@ pub struct AttackEvent {
     next_state: CombatState,
 }
 
+pub struct ExpReceivedEvent {
+    pub(crate) levelup_percentage: f32,
+}
+
+pub struct LevelupEvent {
+    pub(crate) new_level: usize,
+}
+
 #[derive(Component, Inspectable)]
 pub struct CombatStats {
     pub health: isize,
@@ -73,6 +81,7 @@ impl Plugin for CombatPlugin {
                 flash_speed: 0.1,
             })
             .add_event::<AttackEvent>()
+            .add_event::<LevelupEvent>()
             .insert_resource(CombatMenuSelection {
                 selected: CombatMenuOption::Fight,
             })
@@ -146,6 +155,7 @@ fn give_reward(
     mut player_query: Query<(&mut Player, &mut CombatStats)>,
     enemy_query: Query<&Enemy>,
     mut keyboard: ResMut<Input<KeyCode>>,
+    mut ev_levelup: EventWriter<LevelupEvent>,
 ) {
     keyboard.clear();
 
@@ -165,6 +175,10 @@ fn give_reward(
 
     let (mut player, mut stats) = player_query.single_mut();
     if player.level_up(exp_reward, &mut stats) {
+        ev_levelup.send(LevelupEvent {
+            new_level: player.level,
+        });
+
         let level_text = "Level up!";
         let text = spawn_ascii_text(
             &mut commands,

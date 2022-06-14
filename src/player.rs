@@ -16,7 +16,8 @@ pub struct Player {
     pub(crate) active: bool,
     pub(crate) just_moved: bool,
     pub(crate) walked_ground_type: WalkedGroundType,
-    pub exp: usize,
+    pub(crate) exp: usize,
+    pub(crate) level: usize,
     pub(crate) trauma: f32,
 }
 
@@ -40,6 +41,7 @@ impl Default for Player {
             just_moved: false,
             walked_ground_type: WalkedGroundType::Normal,
             exp: 0,
+            level: 1,
             trauma: 0.0,
         }
     }
@@ -55,6 +57,7 @@ impl Player {
             stats.attack += 1;
             stats.defense += 1;
             self.exp -= exp_needed;
+            self.level += 1;
 
             return true;
         }

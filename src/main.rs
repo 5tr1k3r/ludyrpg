@@ -4,6 +4,7 @@ mod camera;
 mod combat;
 mod debug;
 mod fadeout;
+mod game_ui;
 mod graphics;
 mod npc;
 mod player;
@@ -19,6 +20,7 @@ use crate::camera::CameraPlugin;
 use crate::combat::CombatPlugin;
 use crate::debug::DebugPlugin;
 use crate::fadeout::FadeoutPlugin;
+use crate::game_ui::GameUiPlugin;
 use crate::graphics::GraphicsPlugin;
 use crate::npc::NpcPlugin;
 use crate::player::PlayerPlugin;
@@ -64,5 +66,6 @@ fn main() {
         .add_plugin(MainMenuPlugin)
         .add_plugin(NpcPlugin)
         .add_plugin(CameraPlugin)
+        .add_plugin(GameUiPlugin)
         .run();
 }
