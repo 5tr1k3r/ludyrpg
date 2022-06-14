@@ -212,7 +212,7 @@ fn spawn_player_health(
         &mut commands,
         &ascii,
         health_text.as_str(),
-        Vec3::new(-RESOLUTION + TILE_SIZE, -1.0 + TILE_SIZE, 0.0) - transform.translation,
+        Vec3::new(-RESOLUTION + TILE_SIZE, -1.0 + TILE_SIZE + 0.035, 0.0) - transform.translation,
     );
     commands.entity(text).insert(CombatText);
     commands.entity(player).add_child(text);
@@ -331,7 +331,7 @@ fn spawn_combat_menu(
     nine_slice_indices: Res<NineSliceIndices>,
 ) {
     let box_height = 3.0;
-    let box_center_y = -1.0 + box_height * TILE_SIZE / 2.0;
+    let box_center_y = -1.0 + box_height * TILE_SIZE / 2.0 + 0.04;
 
     let run_text = "Run";
     let run_width = (run_text.len() + 2) as f32;
