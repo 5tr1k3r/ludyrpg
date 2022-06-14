@@ -50,7 +50,7 @@ impl Default for Player {
 impl Player {
     pub fn level_up(&mut self, exp: usize, stats: &mut CombatStats) -> bool {
         self.exp += exp;
-        let exp_needed = 50;
+        let exp_needed = self.xp_required_for_current_level();
         if self.exp >= exp_needed {
             stats.health += 2;
             stats.max_health += 2;
@@ -63,6 +63,10 @@ impl Player {
         }
 
         false
+    }
+
+    pub fn xp_required_for_current_level(&self) -> usize {
+        50
     }
 }
 
