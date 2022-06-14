@@ -1,9 +1,12 @@
 use crate::ascii::AsciiSheet;
+use crate::audio::{AudioState, BgmChannel};
+use crate::combat::CombatState;
 use crate::fadeout::create_fadeout;
 use crate::GameState;
 use bevy::prelude::*;
 use bevy::render::camera::Camera2d;
 use bevy::ui::FocusPolicy;
+use bevy_kira_audio::AudioChannel;
 
 pub struct MainMenuPlugin;
 
@@ -21,9 +24,36 @@ impl Plugin for MainMenuPlugin {
         app.add_startup_system(setup_menu)
             .add_system_set(SystemSet::on_pause(GameState::StartMenu).with_system(despawn_menu))
             .add_system_set(SystemSet::on_update(GameState::Overworld).with_system(return_to_menu))
-            .add_system_set(SystemSet::on_enter(GameState::StartMenu).with_system(spawn_menu))
+            .add_system_set(SystemSet::on_update(CombatState::Dead).with_system(return_to_menu))
+            .add_system_set(
+                SystemSet::on_enter(GameState::StartMenu)
+                    .with_system(reset_game)
+                    .with_system(spawn_menu),
+            )
             .add_system(handle_start_button);
     }
+}
+
+fn reset_game(
+    mut commands: Commands,
+    entity_query: Query<Entity, Without<Camera2d>>,
+    mut combat_state: ResMut<State<CombatState>>,
+    bgm_channel: Res<AudioChannel<BgmChannel>>,
+    audio_state: Res<AudioState>,
+) {
+    // Despawn all entities except 2d camera
+    for ent in entity_query.iter() {
+        commands.entity(ent).despawn_recursive();
+    }
+
+    // Reset combat state
+    if combat_state.current() != &CombatState::PlayerTurn {
+        combat_state.set(CombatState::PlayerTurn).unwrap();
+    }
+
+    // Start bg music
+    bgm_channel.stop();
+    bgm_channel.play_looped(audio_state.bgm_handle.clone());
 }
 
 fn return_to_menu(mut commands: Commands, ascii: Res<AsciiSheet>, keyboard: Res<Input<KeyCode>>) {
@@ -76,15 +106,7 @@ fn setup_menu(mut commands: Commands, assets: Res<AssetServer>) {
     commands.insert_resource(ui_assets);
 }
 
-fn spawn_menu(
-    mut commands: Commands,
-    ui_assets: Res<UiAssets>,
-    entity_query: Query<Entity, Without<Camera2d>>,
-) {
-    for ent in entity_query.iter() {
-        commands.entity(ent).despawn_recursive();
-    }
-
+fn spawn_menu(mut commands: Commands, ui_assets: Res<UiAssets>) {
     commands.spawn_bundle(UiCameraBundle::default());
     commands
         .spawn_bundle(ButtonBundle {

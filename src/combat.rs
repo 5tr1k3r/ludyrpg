@@ -4,9 +4,7 @@ use crate::graphics::{spawn_enemy_sprite, CharacterSheet};
 use crate::player::Player;
 use crate::{GameState, RESOLUTION, TILE_SIZE};
 use bevy::prelude::*;
-use bevy::render::camera::Camera2d;
 use bevy_inspector_egui::Inspectable;
-use rand::{thread_rng, Rng};
 
 pub struct CombatPlugin;
 
@@ -85,7 +83,6 @@ impl Plugin for CombatPlugin {
                 SystemSet::on_update(GameState::Combat)
                     .with_system(process_attack)
                     .with_system(combat_input)
-                    .with_system(shake_camera_based_on_trauma)
                     .with_system(highlight_combat_buttons),
             )
             .add_system_set(
@@ -114,8 +111,21 @@ impl Plugin for CombatPlugin {
             )
             .add_system_set(
                 SystemSet::on_update(CombatState::EnemyAttack).with_system(handle_attack_effects),
+            )
+            .add_system_set(
+                SystemSet::on_enter(CombatState::Dead).with_system(show_game_over_screen),
             );
     }
+}
+
+fn show_game_over_screen(mut commands: Commands, ascii: Res<AsciiSheet>) {
+    let text = "GAME OVER";
+    spawn_ascii_text(
+        &mut commands,
+        &ascii,
+        text,
+        Vec3::new(-((text.len() / 2) as f32 * TILE_SIZE), 0.0, 0.0),
+    );
 }
 
 fn handle_accepting_reward(
@@ -365,7 +375,6 @@ fn process_attack(
             }
 
             player.trauma += trauma;
-            player.trauma = player.trauma.clamp(0.0, 1.0);
         }
 
         target_stats.health = std::cmp::max(target_stats.health - resulting_damage, 0);
@@ -404,52 +413,42 @@ fn test_give_player_trauma(mut player_query: Query<&mut Player>, keyboard: Res<I
     if keyboard.just_pressed(KeyCode::Key1) {
         let mut player = player_query.single_mut();
         player.trauma += 0.1;
-        player.trauma = player.trauma.clamp(0.0, 1.0);
     }
     if keyboard.just_pressed(KeyCode::Key2) {
         let mut player = player_query.single_mut();
         player.trauma += 0.2;
-        player.trauma = player.trauma.clamp(0.0, 1.0);
     }
     if keyboard.just_pressed(KeyCode::Key3) {
         let mut player = player_query.single_mut();
         player.trauma += 0.3;
-        player.trauma = player.trauma.clamp(0.0, 1.0);
     }
     if keyboard.just_pressed(KeyCode::Key4) {
         let mut player = player_query.single_mut();
         player.trauma += 0.4;
-        player.trauma = player.trauma.clamp(0.0, 1.0);
     }
     if keyboard.just_pressed(KeyCode::Key5) {
         let mut player = player_query.single_mut();
         player.trauma += 0.5;
-        player.trauma = player.trauma.clamp(0.0, 1.0);
     }
     if keyboard.just_pressed(KeyCode::Key6) {
         let mut player = player_query.single_mut();
         player.trauma += 0.6;
-        player.trauma = player.trauma.clamp(0.0, 1.0);
     }
     if keyboard.just_pressed(KeyCode::Key7) {
         let mut player = player_query.single_mut();
         player.trauma += 0.7;
-        player.trauma = player.trauma.clamp(0.0, 1.0);
     }
     if keyboard.just_pressed(KeyCode::Key8) {
         let mut player = player_query.single_mut();
         player.trauma += 0.8;
-        player.trauma = player.trauma.clamp(0.0, 1.0);
     }
     if keyboard.just_pressed(KeyCode::Key9) {
         let mut player = player_query.single_mut();
         player.trauma += 0.9;
-        player.trauma = player.trauma.clamp(0.0, 1.0);
     }
     if keyboard.just_pressed(KeyCode::Key0) {
         let mut player = player_query.single_mut();
         player.trauma += 1.0;
-        player.trauma = player.trauma.clamp(0.0, 1.0);
     }
 }
 
@@ -501,39 +500,6 @@ fn combat_input(
                 combat_state.set(CombatState::Exiting).unwrap();
             }
         }
-    }
-}
-
-fn shake_camera_based_on_trauma(
-    mut player_query: Query<&mut Player>,
-    mut camera_query: Query<&mut Transform, With<Camera2d>>,
-    time: Res<Time>,
-) {
-    let mut camera_transform = camera_query.single_mut();
-    let mut player = player_query.single_mut();
-
-    camera_transform.translation.x = 0.0;
-    camera_transform.translation.y = 0.0;
-    camera_transform.rotation = Quat::IDENTITY;
-
-    if player.trauma > 0.0 {
-        let mut rng = thread_rng();
-        let shake_amount = player.trauma * player.trauma;
-        let max_angle = 15.0f32.to_radians();
-        let max_offset = 0.2;
-
-        let angle = max_angle * shake_amount * rng.gen_range(-1.0..1.0);
-        let offset_x = max_offset * shake_amount * rng.gen_range(-1.0..1.0);
-        let offset_y = max_offset * shake_amount * rng.gen_range(-1.0..1.0);
-
-        camera_transform.translation.x += offset_x;
-        camera_transform.translation.y += offset_y;
-        camera_transform.rotation *= Quat::from_rotation_z(angle);
-
-        // full (1.0) trauma expires in 0.71s
-        player.trauma -= 1.4 * time.delta_seconds();
-    } else if player.trauma < 0.0 {
-        player.trauma = 0.0;
     }
 }
 

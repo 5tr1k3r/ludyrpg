@@ -1,9 +1,9 @@
 mod ascii;
 mod audio;
+mod camera;
 mod combat;
 mod debug;
 mod fadeout;
-mod game_over;
 mod graphics;
 mod npc;
 mod player;
@@ -12,14 +12,13 @@ mod tilemap;
 
 use bevy::log::LogSettings;
 use bevy::prelude::*;
-use bevy::render::camera::ScalingMode;
 
 use crate::ascii::AsciiPlugin;
 use crate::audio::GameAudioPlugin;
+use crate::camera::CameraPlugin;
 use crate::combat::CombatPlugin;
 use crate::debug::DebugPlugin;
 use crate::fadeout::FadeoutPlugin;
-use crate::game_over::GameOverPlugin;
 use crate::graphics::GraphicsPlugin;
 use crate::npc::NpcPlugin;
 use crate::player::PlayerPlugin;
@@ -64,21 +63,6 @@ fn main() {
         .add_plugin(GraphicsPlugin)
         .add_plugin(MainMenuPlugin)
         .add_plugin(NpcPlugin)
-        .add_plugin(GameOverPlugin)
-        .add_startup_system(spawn_camera)
+        .add_plugin(CameraPlugin)
         .run();
-}
-
-fn spawn_camera(mut commands: Commands) {
-    let mut camera = OrthographicCameraBundle::new_2d();
-
-    camera.orthographic_projection.top = 1.0;
-    camera.orthographic_projection.bottom = -1.0;
-
-    camera.orthographic_projection.left = -1.0 * RESOLUTION;
-    camera.orthographic_projection.right = 1.0 * RESOLUTION;
-
-    camera.orthographic_projection.scaling_mode = ScalingMode::None;
-
-    commands.spawn_bundle(camera);
 }

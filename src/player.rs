@@ -76,7 +76,18 @@ impl Plugin for PlayerPlugin {
                     .with_system(camera_movement.after(player_movement))
                     .with_system(player_encounter_checking.after(player_movement)),
             )
-            .add_system_set(SystemSet::on_enter(GameState::Overworld).with_system(spawn_player));
+            .add_system_set(SystemSet::on_enter(GameState::Overworld).with_system(spawn_player))
+            .add_system(update_trauma);
+    }
+}
+
+fn update_trauma(mut player_query: Query<&mut Player>, time: Res<Time>) {
+    if let Some(mut player) = player_query.iter_mut().next() {
+        if player.trauma > 0.0 {
+            // full (1.0) trauma expires in 0.71s
+            player.trauma -= 1.4 * time.delta_seconds();
+            player.trauma = player.trauma.clamp(0.0, 1.0);
+        }
     }
 }
 

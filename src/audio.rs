@@ -8,14 +8,14 @@ use rand::thread_rng;
 
 pub struct GameAudioPlugin;
 
-struct BgmChannel;
+pub struct BgmChannel;
 
 struct CombatMusicChannel;
 
 struct SfxChannel;
 
 pub struct AudioState {
-    bgm_handle: Handle<AudioSource>,
+    pub(crate) bgm_handle: Handle<AudioSource>,
     combat_music_handle: Handle<AudioSource>,
     hit_handle: Handle<AudioSource>,
     reward_handle: Handle<AudioSource>,
@@ -40,7 +40,6 @@ impl Plugin for GameAudioPlugin {
             .add_audio_channel::<CombatMusicChannel>()
             .add_audio_channel::<SfxChannel>()
             .add_startup_system_to_stage(StartupStage::PreStartup, load_audio)
-            .add_startup_system(start_bgm_music)
             .add_system(bgm_volume_control)
             .add_system(play_hit_sfx)
             .add_system_set(SystemSet::on_enter(GameState::Combat).with_system(start_combat_music))
@@ -137,10 +136,6 @@ fn bgm_volume_control(
 
         audio_state.is_muted = !audio_state.is_muted;
     }
-}
-
-fn start_bgm_music(bgm_channel: Res<AudioChannel<BgmChannel>>, audio_state: Res<AudioState>) {
-    bgm_channel.play_looped(audio_state.bgm_handle.clone());
 }
 
 fn start_combat_music(
