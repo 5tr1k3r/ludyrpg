@@ -4,7 +4,6 @@ use crate::combat::CombatState;
 use crate::fadeout::create_fadeout;
 use crate::GameState;
 use bevy::prelude::*;
-use bevy::render::camera::Camera2d;
 use bevy::ui::FocusPolicy;
 use bevy_kira_audio::AudioChannel;
 
@@ -36,12 +35,12 @@ impl Plugin for MainMenuPlugin {
 
 fn reset_game(
     mut commands: Commands,
-    entity_query: Query<Entity, Without<Camera2d>>,
+    entity_query: Query<Entity>,
     mut combat_state: ResMut<State<CombatState>>,
     bgm_channel: Res<AudioChannel<BgmChannel>>,
     audio_state: Res<AudioState>,
 ) {
-    // Despawn all entities except 2d camera
+    // Despawn all entities
     for ent in entity_query.iter() {
         commands.entity(ent).despawn_recursive();
     }
