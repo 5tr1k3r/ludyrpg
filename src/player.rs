@@ -33,6 +33,8 @@ pub enum WalkedGroundType {
     Grass,
 }
 
+const CAMERA_STEP: f32 = 1.5;
+
 impl Default for Player {
     fn default() -> Self {
         Player {
@@ -71,7 +73,7 @@ impl Plugin for PlayerPlugin {
             .add_system_set(
                 SystemSet::on_update(GameState::Overworld)
                     .with_system(player_movement)
-                    .with_system(camera_follow.after(player_movement))
+                    .with_system(camera_movement.after(player_movement))
                     .with_system(player_encounter_checking.after(player_movement)),
             )
             .add_system_set(SystemSet::on_enter(GameState::Overworld).with_system(spawn_player));
@@ -140,15 +142,31 @@ fn player_encounter_checking(
     }
 }
 
-fn camera_follow(
+fn camera_movement(
     player_query: Query<&Transform, With<Player>>,
     mut camera_query: Query<&mut Transform, (Without<Player>, With<Camera2d>)>,
+    keyboard: Res<Input<KeyCode>>,
+    time: Res<Time>,
 ) {
     let player_transform = player_query.single();
     let mut camera_transform = camera_query.single_mut();
 
     camera_transform.translation.x = player_transform.translation.x;
     camera_transform.translation.y = player_transform.translation.y;
+
+    if keyboard.pressed(KeyCode::NumpadAdd) {
+        let step = CAMERA_STEP * time.delta_seconds();
+        camera_transform.scale *= Vec3::new(1.0 - step, 1.0 - step, 1.0);
+    }
+
+    if keyboard.pressed(KeyCode::NumpadSubtract) {
+        let step = CAMERA_STEP * time.delta_seconds();
+        camera_transform.scale *= Vec3::new(1.0 + step, 1.0 + step, 1.0);
+    }
+
+    if keyboard.pressed(KeyCode::Home) {
+        camera_transform.scale = Vec3::ONE;
+    }
 }
 
 fn player_movement(
