@@ -31,7 +31,9 @@ impl Plugin for CameraPlugin {
             .add_system_set(
                 SystemSet::on_resume(GameState::Overworld).with_system(restore_camera_scale),
             )
-            .add_system_set(SystemSet::on_update(CombatState::Dead).with_system(zoom_into_game_over_text))
+            .add_system_set(
+                SystemSet::on_update(CombatState::Dead).with_system(zoom_into_game_over_text),
+            )
             .add_system_set(
                 SystemSet::on_update(GameState::Combat).with_system(shake_camera_based_on_trauma),
             );
@@ -107,7 +109,10 @@ fn shake_camera_based_on_trauma(
     }
 }
 
-fn zoom_into_game_over_text(mut camera_query: Query<&mut Transform, With<Camera2d>>, time: Res<Time>) {
+fn zoom_into_game_over_text(
+    mut camera_query: Query<&mut Transform, With<Camera2d>>,
+    time: Res<Time>,
+) {
     let mut camera_transform = camera_query.single_mut();
     if camera_transform.scale.x > GAME_OVER_ZOOM_THRESHOLD {
         camera_transform.scale.x -= GAME_OVER_ZOOM_STEP * time.delta_seconds();
