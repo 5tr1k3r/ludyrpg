@@ -66,7 +66,11 @@ impl Player {
     }
 
     pub fn xp_required_for_current_level(&self) -> usize {
-        50
+        // lvl 1 -> 2: 50 xp
+        // lvl 2 -> 3: 60 xp
+        // lvl 3 -> 4: 72 xp
+        let multiplier: f32 = 1.20;
+        (multiplier.powi((self.level - 1) as i32) * 50.0) as usize
     }
 }
 
