@@ -52,10 +52,10 @@ fn fadeout(
         sprite.color.set_a(fade.alpha);
 
         if fade.timer.percent() > 0.5 && !fade.sent {
-            if let Some(next_state) = fade.next_state {
-                state.push(next_state).unwrap();
-            } else {
-                state.pop().unwrap();
+            match fade.next_state {
+                Some(GameState::StartMenu) => state.replace(GameState::StartMenu).unwrap(),
+                Some(next_state) => state.push(next_state).unwrap(),
+                None => state.pop().unwrap(),
             }
             fade.sent = true;
         }
