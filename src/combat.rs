@@ -56,7 +56,6 @@ pub enum CombatState {
     EnemyTurn(bool),
     EnemyAttack,
     Reward,
-    Exiting,
     Dead,
 }
 
@@ -115,9 +114,6 @@ impl Plugin for CombatPlugin {
                     .with_system(give_reward),
             )
             .add_system_set(
-                SystemSet::on_update(CombatState::Reward).with_system(handle_accepting_reward),
-            )
-            .add_system_set(
                 SystemSet::on_update(CombatState::PlayerAttack).with_system(handle_attack_effects),
             )
             .add_system_set(
@@ -139,19 +135,9 @@ fn show_game_over_screen(mut commands: Commands, ascii: Res<AsciiSheet>) {
     );
 }
 
-fn handle_accepting_reward(
+fn give_reward(
     mut commands: Commands,
     ascii: Res<AsciiSheet>,
-    keyboard: Res<Input<KeyCode>>,
-    mut combat_state: ResMut<State<CombatState>>,
-) {
-    if keyboard.just_pressed(KeyCode::Space) {
-        combat_state.set(CombatState::Exiting).unwrap();
-        create_fadeout(&mut commands, None, &ascii);
-    }
-}
-
-fn give_reward(
     mut player_query: Query<(&mut Player, &mut CombatStats)>,
     enemy_query: Query<&Enemy>,
     mut keyboard: ResMut<Input<KeyCode>>,
@@ -181,6 +167,8 @@ fn give_reward(
 
     let levelup_percentage = player.exp as f32 / player.xp_required_for_current_level() as f32;
     ev_exp_received.send(ExpReceivedEvent { levelup_percentage });
+
+    create_fadeout(&mut commands, None, &ascii);
 }
 
 fn despawn_all_combat_text(mut commands: Commands, text_query: Query<Entity, With<CombatText>>) {
@@ -463,7 +451,7 @@ fn combat_input(
     player_query: Query<&CombatStats, With<Player>>,
     enemy_query: Query<Entity, With<Enemy>>,
     mut menu_state: ResMut<CombatMenuSelection>,
-    mut combat_state: ResMut<State<CombatState>>,
+    combat_state: ResMut<State<CombatState>>,
 ) {
     if combat_state.current() != &CombatState::PlayerTurn {
         return;
@@ -498,10 +486,7 @@ fn combat_input(
                     next_state: CombatState::PlayerAttack,
                 })
             }
-            CombatMenuOption::Run => {
-                create_fadeout(&mut commands, None, &ascii);
-                combat_state.set(CombatState::Exiting).unwrap();
-            }
+            CombatMenuOption::Run => create_fadeout(&mut commands, None, &ascii),
         }
     }
 }
