@@ -1,4 +1,5 @@
 use crate::ascii::AsciiSheet;
+use crate::start_menu::StartMenuButton;
 use crate::GameState;
 use bevy::prelude::*;
 
@@ -14,14 +15,14 @@ struct ScreenFade {
 
 impl Plugin for FadeoutPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(ui_fadeout).add_system(fadeout);
+        app.add_system(start_menu_fadeout).add_system(fadeout);
     }
 }
 
-fn ui_fadeout(
+fn start_menu_fadeout(
     fade_query: Query<&ScreenFade>,
-    mut ui_query: Query<&mut UiColor>,
-    mut text_query: Query<&mut Text>,
+    mut ui_query: Query<&mut UiColor, With<StartMenuButton>>,
+    mut text_query: Query<&mut Text, With<StartMenuButton>>,
 ) {
     if let Some(fade) = fade_query.iter().next() {
         for mut ui_color in ui_query.iter_mut() {

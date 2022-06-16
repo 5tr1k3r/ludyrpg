@@ -13,6 +13,9 @@ pub struct MainMenuPlugin;
 #[derive(Component)]
 pub struct ButtonActive(bool);
 
+#[derive(Component)]
+pub struct StartMenuButton;
+
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(SystemSet::on_pause(GameState::StartMenu).with_system(despawn_menu))
@@ -120,20 +123,23 @@ fn spawn_menu(mut commands: Commands, ui_assets: Res<UiAssets>) {
                     ..default()
                 })
                 .insert(FocusPolicy::Pass)
+                .insert(StartMenuButton)
                 .with_children(|parent| {
-                    parent.spawn_bundle(TextBundle {
-                        text: Text::with_section(
-                            "Start Game",
-                            TextStyle {
-                                font: ui_assets.font.clone(),
-                                font_size: 40.0,
-                                color: Color::rgb(0.9, 0.9, 0.9),
-                            },
-                            Default::default(),
-                        ),
-                        focus_policy: FocusPolicy::Pass,
-                        ..default()
-                    });
+                    parent
+                        .spawn_bundle(TextBundle {
+                            text: Text::with_section(
+                                "Start Game",
+                                TextStyle {
+                                    font: ui_assets.font.clone(),
+                                    font_size: 40.0,
+                                    color: Color::rgb(0.9, 0.9, 0.9),
+                                },
+                                Default::default(),
+                            ),
+                            focus_policy: FocusPolicy::Pass,
+                            ..default()
+                        })
+                        .insert(StartMenuButton);
                 });
         });
 }
