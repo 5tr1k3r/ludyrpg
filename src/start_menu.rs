@@ -130,7 +130,7 @@ fn spawn_menu(mut commands: Commands, ui_assets: Res<UiAssets>) {
                             text: Text::with_section(
                                 "Start Game",
                                 TextStyle {
-                                    font: ui_assets.font.clone(),
+                                    font: ui_assets.font_bold.clone(),
                                     font_size: 40.0,
                                     color: Color::rgb(0.9, 0.9, 0.9),
                                 },

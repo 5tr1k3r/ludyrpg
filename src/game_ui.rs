@@ -6,6 +6,7 @@ pub struct GameUiPlugin;
 
 pub struct UiAssets {
     pub(crate) font: Handle<Font>,
+    pub(crate) font_bold: Handle<Font>,
     pub(crate) button: Handle<Image>,
     pub(crate) button_pressed: Handle<Image>,
 }
@@ -14,11 +15,22 @@ pub struct UiAssets {
 pub struct LevelupText;
 
 #[derive(Component)]
+pub struct TextPopup {
+    timer: Timer,
+    when_start_fading: f32,
+}
+
+#[derive(Component)]
 pub struct ExpBar;
+
+pub struct CreateTextPopupEvent {
+    text: &'static str,
+}
 
 impl Plugin for GameUiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(setup_ui)
+        app.add_event::<CreateTextPopupEvent>()
+            .add_startup_system(setup_ui)
             .add_system_set(
                 SystemSet::on_enter(GameState::Overworld)
                     .with_system(spawn_level_text)
@@ -28,7 +40,40 @@ impl Plugin for GameUiPlugin {
                 SystemSet::on_update(GameState::Combat)
                     .with_system(handle_levelup_event)
                     .with_system(handle_exp_received_event),
-            );
+            )
+            .add_system(handle_text_popup_event)
+            .add_system(update_text_popups);
+    }
+}
+
+fn update_text_popups(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Text, &mut TextPopup)>,
+    time: Res<Time>,
+) {
+    for (entity, mut text, mut popup) in query.iter_mut() {
+        popup.timer.tick(time.delta());
+        let percent_left = popup.timer.percent_left();
+        if percent_left < popup.when_start_fading {
+            text.sections[0]
+                .style
+                .color
+                .set_a(percent_left / popup.when_start_fading);
+        }
+
+        if popup.timer.just_finished() {
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+fn handle_text_popup_event(
+    mut commands: Commands,
+    mut ev_text_popup: EventReader<CreateTextPopupEvent>,
+    ui_assets: Res<UiAssets>,
+) {
+    for event in ev_text_popup.iter() {
+        create_text_popup(&mut commands, event.text, &ui_assets);
     }
 }
 
@@ -74,13 +119,13 @@ fn spawn_exp_bar(mut commands: Commands) {
             color: UiColor::from(Color::GOLD),
             ..default()
         })
-        .insert(Name::new("Exp Bar"))
+        .insert(Name::new("ExpBar"))
         .insert(ExpBar);
 }
 
 fn spawn_level_text(mut commands: Commands, ui_assets: Res<UiAssets>) {
     let text_style = TextStyle {
-        font: ui_assets.font.clone(),
+        font: ui_assets.font_bold.clone(),
         font_size: 20.0,
         color: Color::GOLD,
     };
@@ -107,16 +152,54 @@ fn spawn_level_text(mut commands: Commands, ui_assets: Res<UiAssets>) {
             style,
             ..default()
         })
-        .insert(Name::new("Levelup Text"))
+        .insert(Name::new("LevelupText"))
         .insert(LevelupText);
 }
 
 fn setup_ui(mut commands: Commands, assets: Res<AssetServer>) {
     let ui_assets = UiAssets {
-        font: assets.load("fonts/QuattrocentoSans-Bold.ttf"),
+        font_bold: assets.load("fonts/QuattrocentoSans-Bold.ttf"),
+        font: assets.load("fonts/QuattrocentoSans-Regular.ttf"),
         button: assets.load("img/button.png"),
         button_pressed: assets.load("img/button_pressed.png"),
     };
     commands.insert_resource(ui_assets);
     commands.spawn_bundle(UiCameraBundle::default());
+}
+
+fn create_text_popup(commands: &mut Commands, text: &str, ui_assets: &UiAssets) {
+    let text_style = TextStyle {
+        font: ui_assets.font.clone(),
+        font_size: 30.0,
+        color: Color::rgb(0.9, 0.9, 0.9),
+    };
+
+    let text_alignment = TextAlignment {
+        vertical: VerticalAlign::Center,
+        horizontal: HorizontalAlign::Left,
+    };
+
+    let style = Style {
+        position_type: PositionType::Absolute,
+        align_self: AlignSelf::Center,
+        position: Rect {
+            left: Val::Percent(1.0),
+            right: Val::Auto,
+            top: Val::Percent(1.0),
+            bottom: Val::Auto,
+        },
+        ..default()
+    };
+
+    commands
+        .spawn_bundle(TextBundle {
+            text: Text::with_section(text, text_style, text_alignment),
+            style,
+            ..default()
+        })
+        .insert(Name::new("TextPopup"))
+        .insert(TextPopup {
+            timer: Timer::from_seconds(3.0, false),
+            when_start_fading: 0.3,
+        });
 }
