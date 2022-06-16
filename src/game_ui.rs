@@ -20,11 +20,18 @@ pub struct TextPopup {
     when_start_fading: f32,
 }
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+pub enum TextPopupPosition {
+    Left,
+    Center,
+}
+
 #[derive(Component)]
 pub struct ExpBar;
 
 pub struct CreateTextPopupEvent {
-    text: &'static str,
+    pub(crate) text: String,
+    pub(crate) position: TextPopupPosition,
 }
 
 impl Plugin for GameUiPlugin {
@@ -48,10 +55,10 @@ impl Plugin for GameUiPlugin {
 
 fn update_text_popups(
     mut commands: Commands,
-    mut query: Query<(Entity, &mut Text, &mut TextPopup)>,
+    mut query: Query<(&Parent, &mut Text, &mut TextPopup)>,
     time: Res<Time>,
 ) {
-    for (entity, mut text, mut popup) in query.iter_mut() {
+    for (parent_entity, mut text, mut popup) in query.iter_mut() {
         popup.timer.tick(time.delta());
         let percent_left = popup.timer.percent_left();
         if percent_left < popup.when_start_fading {
@@ -62,7 +69,7 @@ fn update_text_popups(
         }
 
         if popup.timer.just_finished() {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(parent_entity.0).despawn_recursive();
         }
     }
 }
@@ -73,7 +80,12 @@ fn handle_text_popup_event(
     ui_assets: Res<UiAssets>,
 ) {
     for event in ev_text_popup.iter() {
-        create_text_popup(&mut commands, event.text, &ui_assets);
+        create_text_popup(
+            &mut commands,
+            &ui_assets,
+            event.text.as_str(),
+            event.position,
+        );
     }
 }
 
@@ -167,7 +179,12 @@ fn setup_ui(mut commands: Commands, assets: Res<AssetServer>) {
     commands.spawn_bundle(UiCameraBundle::default());
 }
 
-fn create_text_popup(commands: &mut Commands, text: &str, ui_assets: &UiAssets) {
+pub fn create_text_popup(
+    commands: &mut Commands,
+    ui_assets: &UiAssets,
+    text: &str,
+    position: TextPopupPosition,
+) {
     let text_style = TextStyle {
         font: ui_assets.font.clone(),
         font_size: 30.0,
@@ -179,11 +196,22 @@ fn create_text_popup(commands: &mut Commands, text: &str, ui_assets: &UiAssets) 
         horizontal: HorizontalAlign::Left,
     };
 
-    let style = Style {
+    let node_style = Style {
         position_type: PositionType::Absolute,
+        flex_direction: FlexDirection::Column,
+        justify_content: JustifyContent::FlexEnd,
+        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+        ..default()
+    };
+
+    let style = Style {
+        position_type: PositionType::Relative,
         align_self: AlignSelf::Center,
-        position: Rect {
-            left: Val::Percent(1.0),
+        margin: Rect {
+            left: match position {
+                TextPopupPosition::Left => Val::Percent(1.0),
+                _ => Val::Auto,
+            },
             right: Val::Auto,
             top: Val::Percent(1.0),
             bottom: Val::Auto,
@@ -192,14 +220,22 @@ fn create_text_popup(commands: &mut Commands, text: &str, ui_assets: &UiAssets) 
     };
 
     commands
-        .spawn_bundle(TextBundle {
-            text: Text::with_section(text, text_style, text_alignment),
-            style,
+        .spawn_bundle(NodeBundle {
+            style: node_style,
+            color: Color::NONE.into(),
             ..default()
         })
-        .insert(Name::new("TextPopup"))
-        .insert(TextPopup {
-            timer: Timer::from_seconds(3.0, false),
-            when_start_fading: 0.3,
+        .with_children(|parent| {
+            parent
+                .spawn_bundle(TextBundle {
+                    text: Text::with_section(text, text_style, text_alignment),
+                    style,
+                    ..default()
+                })
+                .insert(Name::new("TextPopup"))
+                .insert(TextPopup {
+                    timer: Timer::from_seconds(3.0, false),
+                    when_start_fading: 0.3,
+                });
         });
 }

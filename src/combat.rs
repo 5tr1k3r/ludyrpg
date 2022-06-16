@@ -1,5 +1,6 @@
 use crate::ascii::{spawn_ascii_text, spawn_nine_slice, AsciiSheet, NineSlice, NineSliceIndices};
 use crate::fadeout::create_fadeout;
+use crate::game_ui::{CreateTextPopupEvent, TextPopupPosition};
 use crate::graphics::{spawn_enemy_sprite, CharacterSheet};
 use crate::player::Player;
 use crate::{GameState, RESOLUTION, TILE_SIZE};
@@ -151,13 +152,12 @@ fn handle_accepting_reward(
 }
 
 fn give_reward(
-    mut commands: Commands,
-    ascii: Res<AsciiSheet>,
     mut player_query: Query<(&mut Player, &mut CombatStats)>,
     enemy_query: Query<&Enemy>,
     mut keyboard: ResMut<Input<KeyCode>>,
     mut ev_levelup: EventWriter<LevelupEvent>,
     mut ev_exp_received: EventWriter<ExpReceivedEvent>,
+    mut ev_text_popup: EventWriter<CreateTextPopupEvent>,
 ) {
     keyboard.clear();
 
@@ -165,35 +165,19 @@ fn give_reward(
         EnemyType::Bat => 10,
         EnemyType::Ghost => 30,
     };
-    let reward_text = format!("Earned {} exp", exp_reward);
-
-    let text = spawn_ascii_text(
-        &mut commands,
-        &ascii,
-        &reward_text,
-        Vec3::new(-((reward_text.len() / 2) as f32 * TILE_SIZE), 0.0, 0.0),
-    );
-    commands.entity(text).insert(CombatText);
-
+    let mut reward_text = format!("Earned {} exp", exp_reward);
     let (mut player, mut stats) = player_query.single_mut();
     if player.level_up(exp_reward, &mut stats) {
         ev_levelup.send(LevelupEvent {
             new_level: player.level,
         });
-
-        let level_text = "Level up!";
-        let text = spawn_ascii_text(
-            &mut commands,
-            &ascii,
-            level_text,
-            Vec3::new(
-                -((level_text.len() / 2) as f32 * TILE_SIZE),
-                -1.5 * TILE_SIZE,
-                0.0,
-            ),
-        );
-        commands.entity(text).insert(CombatText);
+        reward_text += "\nLevel up!";
     }
+
+    ev_text_popup.send(CreateTextPopupEvent {
+        text: reward_text,
+        position: TextPopupPosition::Left,
+    });
 
     let levelup_percentage = player.exp as f32 / player.xp_required_for_current_level() as f32;
     ev_exp_received.send(ExpReceivedEvent { levelup_percentage });
