@@ -1,6 +1,7 @@
 use crate::combat::{ExpReceivedEvent, LevelupEvent};
 use crate::GameState;
 use bevy::prelude::*;
+use bevy::sprite::Anchor;
 use bevy_inspector_egui::Inspectable;
 
 pub struct GameUiPlugin;
@@ -41,6 +42,19 @@ pub struct CreateTextPopupEvent {
     pub(crate) duration: f32,
 }
 
+#[derive(Component)]
+pub struct HealthBarBg;
+
+#[derive(Component)]
+pub struct HealthBar {
+    pub(crate) entity: Entity,
+}
+
+pub enum HealthBarType {
+    Player,
+    Enemy,
+}
+
 impl Plugin for GameUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<CreateTextPopupEvent>()
@@ -61,6 +75,53 @@ impl Plugin for GameUiPlugin {
             .add_system(handle_text_popup_event)
             .add_system(update_text_popups);
     }
+}
+
+pub fn create_health_bar(commands: &mut Commands, hb_type: HealthBarType, owner: Entity) -> Entity {
+    let health_bar_bg = commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                color: match hb_type {
+                    HealthBarType::Player => Color::rgb(0.08, 0.31, 0.02),
+                    HealthBarType::Enemy => Color::rgb(0.31, 0.08, 0.02),
+                },
+                custom_size: Some(Vec2::new(0.104, 0.022)),
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(0.0, 0.07, 0.5),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Name::new("HealthBarBg"))
+        .insert(HealthBarBg)
+        .id();
+
+    let health_bar = commands
+        .spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+                color: match hb_type {
+                    HealthBarType::Player => Color::rgb(0.31, 0.66, 0.23),
+                    HealthBarType::Enemy => Color::rgb(0.66, 0.31, 0.23),
+                },
+                custom_size: Some(Vec2::new(0.1, 0.018)),
+                anchor: Anchor::CenterLeft,
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(-0.05, 0.0, 0.1),
+                ..default()
+            },
+            ..default()
+        })
+        .insert(Name::new("HealthBar"))
+        .insert(HealthBar { entity: owner })
+        .id();
+
+    commands.entity(health_bar_bg).add_child(health_bar);
+
+    health_bar_bg
 }
 
 fn show_help_initially(ev_text_popup: EventWriter<CreateTextPopupEvent>) {

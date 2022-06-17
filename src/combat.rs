@@ -1,6 +1,9 @@
 use crate::ascii::{spawn_ascii_text, spawn_nine_slice, AsciiSheet, NineSlice, NineSliceIndices};
 use crate::fadeout::create_fadeout;
-use crate::game_ui::{CreateTextPopupEvent, TextPopupPosition};
+use crate::game_ui::{
+    create_health_bar, CreateTextPopupEvent, HealthBar, HealthBarBg, HealthBarType,
+    TextPopupPosition,
+};
 use crate::graphics::{spawn_enemy_sprite, CharacterSheet};
 use crate::player::Player;
 use crate::{GameState, RESOLUTION, TILE_SIZE};
@@ -99,7 +102,6 @@ impl Plugin for CombatPlugin {
                 SystemSet::on_enter(GameState::Combat)
                     .with_system(spawn_enemy)
                     .with_system(start_combat)
-                    .with_system(spawn_player_health)
                     .with_system(spawn_combat_menu),
             )
             .add_system_set(
@@ -178,24 +180,6 @@ fn despawn_all_combat_text(mut commands: Commands, text_query: Query<Entity, Wit
     for entity in text_query.iter() {
         commands.entity(entity).despawn_recursive();
     }
-}
-
-fn spawn_player_health(
-    mut commands: Commands,
-    ascii: Res<AsciiSheet>,
-    player_query: Query<(Entity, &CombatStats, &Transform), With<Player>>,
-) {
-    let (player, stats, transform) = player_query.single();
-
-    let health_text = format!("Health: {}", stats.health);
-    let text = spawn_ascii_text(
-        &mut commands,
-        &ascii,
-        health_text.as_str(),
-        Vec3::new(-RESOLUTION + TILE_SIZE, -1.0 + TILE_SIZE + 0.035, 0.0) - transform.translation,
-    );
-    commands.entity(text).insert(CombatText);
-    commands.entity(player).add_child(text);
 }
 
 fn handle_attack_effects(
@@ -354,15 +338,13 @@ fn spawn_combat_menu(
 }
 
 fn process_attack(
-    mut commands: Commands,
-    ascii: Res<AsciiSheet>,
     mut attack_event: EventReader<AttackEvent>,
-    text_query: Query<&Transform, With<CombatText>>,
-    mut target_query: Query<(&Children, &mut CombatStats, Option<&mut Player>)>,
+    mut target_query: Query<(Entity, &mut CombatStats, Option<&mut Player>)>,
+    mut health_bar_query: Query<(&mut Transform, &HealthBar)>,
     mut combat_state: ResMut<State<CombatState>>,
 ) {
     for event in attack_event.iter() {
-        let (target_children, mut target_stats, player_option) = target_query
+        let (entity, mut target_stats, player_option) = target_query
             .get_mut(event.target)
             .expect("Fight target without stats!");
 
@@ -384,20 +366,10 @@ fn process_attack(
 
         target_stats.health = std::cmp::max(target_stats.health - resulting_damage, 0);
 
-        // Update Health
-        for child in target_children.iter() {
-            if let Ok(transform) = text_query.get(*child) {
-                // Delete old text
-                commands.entity(*child).despawn_recursive();
-
-                let new_health = spawn_ascii_text(
-                    &mut commands,
-                    &ascii,
-                    &format!("Health: {}", target_stats.health),
-                    transform.translation,
-                );
-                commands.entity(new_health).insert(CombatText);
-                commands.entity(event.target).add_child(new_health);
+        for (mut transform, health_bar) in health_bar_query.iter_mut() {
+            if entity == health_bar.entity {
+                let health_percent = target_stats.health as f32 / target_stats.max_health as f32;
+                transform.scale = Vec3::new(health_percent, 1.0, 1.0);
             }
         }
 
@@ -485,7 +457,7 @@ fn combat_input(
     menu_state.selected = match new_selection {
         0 => CombatMenuOption::Fight,
         1 => CombatMenuOption::Run,
-        _ => panic!("Bad menu selection"),
+        _ => CombatMenuOption::Run,
     };
 
     if keyboard.just_pressed(KeyCode::E) {
@@ -505,7 +477,7 @@ fn combat_input(
     }
 }
 
-fn spawn_enemy(mut commands: Commands, ascii: Res<AsciiSheet>, characters: Res<CharacterSheet>) {
+fn spawn_enemy(mut commands: Commands, characters: Res<CharacterSheet>) {
     let enemy_type = match rand::random::<f32>() {
         x if x < 0.5 => EnemyType::Bat,
         _ => EnemyType::Ghost,
@@ -526,28 +498,21 @@ fn spawn_enemy(mut commands: Commands, ascii: Res<AsciiSheet>, characters: Res<C
         },
     };
 
-    let health_text = spawn_ascii_text(
-        &mut commands,
-        &ascii,
-        &format!("Health: {}", stats.health),
-        Vec3::new(-4.5 * TILE_SIZE, 3.0 * TILE_SIZE, 100.0),
-    );
-
-    commands.entity(health_text).insert(CombatText);
-
     let sprite = spawn_enemy_sprite(
         &mut commands,
         &characters,
-        Vec3::new(0.0, 0.6, 100.0),
+        Vec3::new(0.0, 0.5, 100.0),
         enemy_type,
     );
+
+    let health_bar_bg = create_health_bar(&mut commands, HealthBarType::Enemy, sprite);
+    commands.entity(sprite).add_child(health_bar_bg);
 
     commands
         .entity(sprite)
         .insert(Enemy { enemy_type })
         .insert(stats)
-        .insert(Name::new("Enemy"))
-        .add_child(health_text);
+        .insert(Name::new("Enemy"));
 }
 
 fn despawn_enemy(mut commands: Commands, enemy_query: Query<Entity, With<Enemy>>) {
@@ -557,9 +522,15 @@ fn despawn_enemy(mut commands: Commands, enemy_query: Query<Entity, With<Enemy>>
 }
 
 fn hide_player(
-    mut player_query: Query<&mut Visibility, With<Player>>
+    mut player_query: Query<(&mut Visibility, &Children), (With<Player>, Without<HealthBarBg>)>,
+    mut health_bar_bg_query: Query<&mut Visibility, (With<HealthBarBg>, Without<Player>)>,
 ) {
-    for mut visibility in player_query.iter_mut() {
+    for (mut visibility, children) in player_query.iter_mut() {
         visibility.is_visible = false;
+        for child in children.iter() {
+            if let Ok(mut health_bar_bg_vis) = health_bar_bg_query.get_mut(*child) {
+                health_bar_bg_vis.is_visible = false;
+            }
+        }
     }
 }

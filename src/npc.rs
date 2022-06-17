@@ -1,5 +1,5 @@
 use crate::combat::CombatStats;
-use crate::game_ui::{CreateTextPopupEvent, TextPopupPosition};
+use crate::game_ui::{CreateTextPopupEvent, HealthBar, TextPopupPosition};
 use crate::player::Player;
 use crate::{GameState, TILE_SIZE};
 use bevy::prelude::*;
@@ -21,12 +21,13 @@ impl Plugin for NpcPlugin {
 }
 
 fn npc_speech(
-    mut player_query: Query<(&Player, &mut CombatStats, &Transform)>,
-    npc_query: Query<&Transform, With<Npc>>,
+    mut player_query: Query<(Entity, &Player, &mut CombatStats, &Transform), Without<HealthBar>>,
+    npc_query: Query<&Transform, (With<Npc>, Without<HealthBar>)>,
     keyboard: Res<Input<KeyCode>>,
     mut ev_text_popup: EventWriter<CreateTextPopupEvent>,
+    mut health_bar_query: Query<(&mut Transform, &HealthBar), Without<Player>>,
 ) {
-    let (player, mut stats, transform) = player_query.single_mut();
+    let (entity, player, mut stats, transform) = player_query.single_mut();
     if !player.active {
         return;
     }
@@ -42,6 +43,12 @@ fn npc_speech(
                     "You seem to be doing just fine without me!".to_string()
                 } else {
                     stats.health = stats.max_health;
+                    for (mut transform, health_bar) in health_bar_query.iter_mut() {
+                        if entity == health_bar.entity {
+                            transform.scale = Vec3::splat(1.0);
+                        }
+                    }
+
                     "You seem weak, let me heal you!".to_string()
                 };
 

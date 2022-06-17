@@ -1,6 +1,7 @@
 use crate::ascii::AsciiSheet;
 use crate::combat::CombatStats;
 use crate::fadeout::create_fadeout;
+use crate::game_ui::{create_health_bar, HealthBarType};
 use crate::graphics::{CharacterSheet, FacingDirection, FrameAnimation, PlayerGraphics};
 use crate::tilemap::{EncounterSpawner, TileCollider};
 use crate::{GameState, TILE_SIZE};
@@ -125,7 +126,7 @@ fn place_player_and_save_data(
 
     transform.scale = Vec3::new(5.0, 5.0, 1.0);
     graphics.facing = FacingDirection::Up;
-    transform.translation = Vec3::new(0.0, -0.6, 100.0);
+    transform.translation = Vec3::new(0.0, -0.5, 100.0);
 }
 
 fn restore_player_data(
@@ -235,7 +236,7 @@ fn wall_collision_check(target_player_pos: Vec3, wall_translation: Vec3) -> bool
 }
 
 fn spawn_player(mut commands: Commands, characters: Res<CharacterSheet>) {
-    commands
+    let player = commands
         .spawn_bundle(SpriteSheetBundle {
             sprite: TextureAtlasSprite {
                 index: characters.player_down[0],
@@ -266,5 +267,9 @@ fn spawn_player(mut commands: Commands, characters: Res<CharacterSheet>) {
             attack: 2,
             defense: 1,
         })
-        .insert(EncounterTracker { avg_time: 1.2 });
+        .insert(EncounterTracker { avg_time: 1.2 })
+        .id();
+
+    let health_bar_bg = create_health_bar(&mut commands, HealthBarType::Player, player);
+    commands.entity(player).add_child(health_bar_bg);
 }

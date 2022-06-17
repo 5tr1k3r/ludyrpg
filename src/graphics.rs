@@ -1,5 +1,6 @@
 use crate::combat::EnemyType;
 use crate::player::Player;
+use crate::TILE_SIZE;
 use bevy::prelude::*;
 use bevy_inspector_egui::Inspectable;
 
@@ -54,7 +55,7 @@ pub fn spawn_enemy_sprite(
         EnemyType::Bat => TextureAtlasSprite::new(characters.bat_frames[0]),
         EnemyType::Ghost => TextureAtlasSprite::new(characters.ghost_frames[0]),
     };
-    sprite.custom_size = Some(Vec2::splat(0.5));
+    sprite.custom_size = Some(Vec2::splat(TILE_SIZE));
 
     let frames = match enemy_type {
         EnemyType::Bat => characters.bat_frames.to_vec(),
@@ -73,6 +74,7 @@ pub fn spawn_enemy_sprite(
             texture_atlas: characters.handle.clone(),
             transform: Transform {
                 translation,
+                scale: Vec3::new(5.0, 5.0, 1.0),
                 ..default()
             },
             ..default()
