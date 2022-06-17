@@ -1,6 +1,7 @@
 use crate::combat::{ExpReceivedEvent, LevelupEvent};
 use crate::GameState;
 use bevy::prelude::*;
+use bevy_inspector_egui::Inspectable;
 
 pub struct GameUiPlugin;
 
@@ -26,8 +27,13 @@ pub enum TextPopupPosition {
     Center,
 }
 
-#[derive(Component)]
-pub struct ExpBar;
+#[derive(Component, Inspectable)]
+pub struct ExpBar {
+    width: f32,
+    target_width: f32,
+    progress_duration: f32,
+    progress_step: f32,
+}
 
 pub struct CreateTextPopupEvent {
     pub(crate) text: String,
@@ -46,14 +52,12 @@ impl Plugin for GameUiPlugin {
                     .with_system(spawn_exp_bar),
             )
             .add_system_set(
-                SystemSet::on_update(GameState::Combat)
-                    .with_system(handle_levelup_event)
-                    .with_system(handle_exp_received_event),
+                SystemSet::on_update(GameState::Combat).with_system(handle_levelup_event),
             )
             .add_system_set(
-                SystemSet::on_update(GameState::Overworld)
-                    .with_system(show_help_on_button_press),
+                SystemSet::on_update(GameState::Overworld).with_system(show_help_on_button_press),
             )
+            .add_system(handle_exp_received_event)
             .add_system(handle_text_popup_event)
             .add_system(update_text_popups);
     }
@@ -71,7 +75,8 @@ fn show_help(mut ev_text_popup: EventWriter<CreateTextPopupEvent>) {
   Num+, Num-, Home: camera control
   E: interact
   A, D: select option
-  H: show help".to_string();
+  H: show help"
+        .to_string();
     ev_text_popup.send(CreateTextPopupEvent {
         text,
         position: TextPopupPosition::Left,
@@ -134,11 +139,38 @@ fn handle_text_popup_event(
 
 fn handle_exp_received_event(
     mut ev_exp_received: EventReader<ExpReceivedEvent>,
-    mut exp_bar_query: Query<&mut Style, With<ExpBar>>,
+    mut exp_bar_query: Query<(&mut Style, &mut ExpBar)>,
+    time: Res<Time>,
+    game_state: Res<State<GameState>>,
 ) {
+    if game_state.current() == &GameState::StartMenu {
+        return;
+    }
+
+    let (mut style, mut exp_bar) = exp_bar_query.single_mut();
     for event in ev_exp_received.iter() {
-        let mut exp_bar = exp_bar_query.single_mut();
-        exp_bar.size.width = Val::Percent(event.levelup_percentage * 100.0);
+        exp_bar.target_width = event.levelup_percentage;
+        if exp_bar.target_width < exp_bar.width {
+            exp_bar.target_width += 1.0;
+        }
+
+        let width_delta = exp_bar.target_width - exp_bar.width;
+        exp_bar.progress_step = time.delta_seconds() * width_delta / exp_bar.progress_duration;
+    }
+
+    if exp_bar.progress_step != 0.0 {
+        if exp_bar.width > exp_bar.target_width {
+            exp_bar.width = exp_bar.target_width;
+            exp_bar.progress_step = 0.0;
+        }
+
+        exp_bar.width += exp_bar.progress_step;
+        if exp_bar.width >= 1.0 {
+            exp_bar.width -= 1.0;
+            exp_bar.target_width -= 1.0;
+        }
+
+        style.size.width = Val::Percent(exp_bar.width * 100.0);
     }
 }
 
@@ -175,7 +207,12 @@ fn spawn_exp_bar(mut commands: Commands) {
             ..default()
         })
         .insert(Name::new("ExpBar"))
-        .insert(ExpBar);
+        .insert(ExpBar {
+            width: 0.0,
+            target_width: 0.0,
+            progress_duration: 0.6,
+            progress_step: 0.0,
+        });
 }
 
 fn spawn_level_text(mut commands: Commands, ui_assets: Res<UiAssets>) {

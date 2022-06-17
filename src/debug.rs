@@ -1,4 +1,5 @@
 use crate::combat::{CombatStats, Enemy};
+use crate::game_ui::ExpBar;
 use crate::graphics::{FrameAnimation, PlayerGraphics};
 use crate::player::{EncounterTracker, Player};
 use bevy::prelude::*;
@@ -13,6 +14,7 @@ impl Plugin for DebugPlugin {
                 .register_type::<EncounterTracker>()
                 .register_type::<FrameAnimation>()
                 .register_inspectable::<CombatStats>()
+                .register_inspectable::<ExpBar>()
                 .register_inspectable::<PlayerGraphics>()
                 .register_inspectable::<Enemy>()
                 .register_inspectable::<Player>();
