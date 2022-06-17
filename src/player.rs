@@ -7,7 +7,7 @@ use crate::{GameState, TILE_SIZE};
 use bevy::prelude::*;
 use bevy::sprite::collide_aabb::collide;
 use bevy_inspector_egui::Inspectable;
-use rand::{Rng, thread_rng};
+use rand::{thread_rng, Rng};
 
 pub struct PlayerPlugin;
 
@@ -33,6 +33,12 @@ pub struct EncounterTracker {
 pub enum WalkedGroundType {
     Normal,
     Grass,
+}
+
+pub struct OverworldPlayerData {
+    translation: Vec3,
+    facing: FacingDirection,
+    scale: Vec3,
 }
 
 impl Default for Player {
@@ -78,15 +84,22 @@ impl Player {
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(SystemSet::on_resume(GameState::Overworld).with_system(show_player))
-            .add_system_set(SystemSet::on_pause(GameState::Overworld).with_system(hide_player))
-            .add_system_set(
-                SystemSet::on_update(GameState::Overworld)
-                    .with_system(player_movement)
-                    .with_system(player_encounter_checking.after(player_movement)),
-            )
-            .add_system_set(SystemSet::on_enter(GameState::Overworld).with_system(spawn_player))
-            .add_system(update_trauma);
+        app.insert_resource(OverworldPlayerData {
+            translation: Vec3::ZERO,
+            facing: FacingDirection::Up,
+            scale: Vec3::ONE,
+        })
+        .add_system_set(SystemSet::on_resume(GameState::Overworld).with_system(restore_player_data))
+        .add_system_set(
+            SystemSet::on_pause(GameState::Overworld).with_system(place_player_and_save_data),
+        )
+        .add_system_set(
+            SystemSet::on_update(GameState::Overworld)
+                .with_system(player_movement)
+                .with_system(player_encounter_checking.after(player_movement)),
+        )
+        .add_system_set(SystemSet::on_enter(GameState::Overworld).with_system(spawn_player))
+        .add_system(update_trauma);
     }
 }
 
@@ -100,39 +113,30 @@ fn update_trauma(mut player_query: Query<&mut Player>, time: Res<Time>) {
     }
 }
 
-fn hide_player(
-    mut player_query: Query<&mut Visibility, With<Player>>,
-    children_query: Query<&Children, With<Player>>,
-    mut child_visibility_query: Query<&mut Visibility, Without<Player>>,
+fn place_player_and_save_data(
+    mut player_query: Query<(&mut Transform, &mut PlayerGraphics), With<Player>>,
+    mut overworld_player_data: ResMut<OverworldPlayerData>,
 ) {
-    let mut player_vis = player_query.single_mut();
-    player_vis.is_visible = false;
+    let (mut transform, mut graphics): (Mut<Transform>, Mut<PlayerGraphics>) =
+        player_query.single_mut();
+    overworld_player_data.scale = transform.scale;
+    overworld_player_data.facing = graphics.facing;
+    overworld_player_data.translation = transform.translation;
 
-    if let Ok(children) = children_query.get_single() {
-        for child in children.iter() {
-            if let Ok(mut child_vis) = child_visibility_query.get_mut(*child) {
-                child_vis.is_visible = false
-            }
-        }
-    }
+    transform.scale = Vec3::new(5.0, 5.0, 1.0);
+    graphics.facing = FacingDirection::Up;
+    transform.translation = Vec3::new(0.0, -0.6, 100.0);
 }
 
-fn show_player(
-    mut player_query: Query<(&mut Player, &mut Visibility)>,
-    children_query: Query<&Children, With<Player>>,
-    mut child_visibility_query: Query<&mut Visibility, Without<Player>>,
+fn restore_player_data(
+    mut player_query: Query<(&mut Transform, &mut PlayerGraphics, &mut Player)>,
+    overworld_player_data: Res<OverworldPlayerData>,
 ) {
-    let (mut player, mut player_vis) = player_query.single_mut();
+    let (mut transform, mut graphics, mut player) = player_query.single_mut();
+    transform.scale = overworld_player_data.scale;
+    graphics.facing = overworld_player_data.facing;
+    transform.translation = overworld_player_data.translation;
     player.active = true;
-    player_vis.is_visible = true;
-
-    if let Ok(children) = children_query.get_single() {
-        for child in children.iter() {
-            if let Ok(mut child_vis) = child_visibility_query.get_mut(*child) {
-                child_vis.is_visible = true
-            }
-        }
-    }
 }
 
 fn player_encounter_checking(
@@ -235,10 +239,14 @@ fn spawn_player(mut commands: Commands, characters: Res<CharacterSheet>) {
         .spawn_bundle(SpriteSheetBundle {
             sprite: TextureAtlasSprite {
                 index: characters.player_down[0],
-                custom_size: Some(Vec2::splat(TILE_SIZE * 1.5)),
+                custom_size: Some(Vec2::splat(TILE_SIZE)),
                 ..default()
             },
-            transform: Transform::from_xyz(2.0 * TILE_SIZE, -2.0 * TILE_SIZE, 900.0),
+            transform: Transform {
+                translation: Vec3::new(2.0 * TILE_SIZE, -2.0 * TILE_SIZE, 900.0),
+                rotation: Default::default(),
+                scale: Vec3::new(1.5, 1.5, 1.0),
+            },
             texture_atlas: characters.handle.clone(),
             ..default()
         })
@@ -258,7 +266,5 @@ fn spawn_player(mut commands: Commands, characters: Res<CharacterSheet>) {
             attack: 2,
             defense: 1,
         })
-        .insert(EncounterTracker {
-            avg_time: 1.2,
-        });
+        .insert(EncounterTracker { avg_time: 1.2 });
 }

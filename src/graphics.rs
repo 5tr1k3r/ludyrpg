@@ -15,7 +15,7 @@ pub struct CharacterSheet {
     pub ghost_frames: [usize; 3],
 }
 
-#[derive(Inspectable)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Inspectable)]
 pub enum FacingDirection {
     Up,
     Down,
