@@ -233,7 +233,7 @@ fn spawn_player(mut commands: Commands, characters: Res<CharacterSheet>) {
         .spawn_bundle(SpriteSheetBundle {
             sprite: TextureAtlasSprite {
                 index: characters.player_down[0],
-                custom_size: Some(Vec2::splat(TILE_SIZE)),
+                custom_size: Some(Vec2::splat(TILE_SIZE * 1.5)),
                 ..default()
             },
             transform: Transform::from_xyz(2.0 * TILE_SIZE, -2.0 * TILE_SIZE, 900.0),
