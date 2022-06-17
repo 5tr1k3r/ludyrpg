@@ -78,8 +78,15 @@ fn handle_text_popup_event(
     mut commands: Commands,
     mut ev_text_popup: EventReader<CreateTextPopupEvent>,
     ui_assets: Res<UiAssets>,
+    popup_query: Query<&Parent, With<TextPopup>>,
 ) {
     for event in ev_text_popup.iter() {
+        // Destroy old popup
+        for popup_parent_node in popup_query.iter() {
+            commands.entity(popup_parent_node.0).despawn_recursive();
+        }
+
+        // Create new one
         create_text_popup(
             &mut commands,
             &ui_assets,

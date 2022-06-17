@@ -38,9 +38,15 @@ fn npc_speech(
                 transform.translation.truncate(),
             ) < TILE_SIZE * 1.5
             {
-                stats.health = stats.max_health;
+                let text = if stats.health == stats.max_health {
+                    "You seem to be doing just fine without me!".to_string()
+                } else {
+                    stats.health = stats.max_health;
+                    "You seem weak, let me heal you!".to_string()
+                };
+
                 ev_text_popup.send(CreateTextPopupEvent {
-                    text: "You seem weak, let me heal you!".to_string(),
+                    text,
                     position: TextPopupPosition::Center,
                 });
             }
