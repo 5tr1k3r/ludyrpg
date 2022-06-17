@@ -120,7 +120,9 @@ impl Plugin for CombatPlugin {
                 SystemSet::on_update(CombatState::EnemyAttack).with_system(handle_attack_effects),
             )
             .add_system_set(
-                SystemSet::on_enter(CombatState::Dead).with_system(show_game_over_screen),
+                SystemSet::on_enter(CombatState::Dead)
+                    .with_system(show_game_over_screen)
+                    .with_system(hide_player),
             );
     }
 }
@@ -199,7 +201,8 @@ fn spawn_player_health(
 fn handle_attack_effects(
     mut attack_fx: ResMut<AttackEffects>,
     time: Res<Time>,
-    mut enemy_graphics_query: Query<&mut Visibility, With<Enemy>>,
+    mut enemy_graphics_query: Query<&mut Visibility, (With<Enemy>, Without<Player>)>,
+    mut player_graphics_query: Query<&mut Visibility, (With<Player>, Without<Enemy>)>,
     mut state: ResMut<State<CombatState>>,
 ) {
     attack_fx.timer.tick(time.delta());
@@ -212,8 +215,18 @@ fn handle_attack_effects(
         }
     }
 
+    let mut player_sprite = player_graphics_query.iter_mut().next().unwrap();
+    if state.current() == &CombatState::EnemyAttack {
+        if attack_fx.timer.elapsed_secs() % attack_fx.flash_speed > attack_fx.flash_speed / 2.0 {
+            player_sprite.is_visible = false;
+        } else {
+            player_sprite.is_visible = true;
+        }
+    }
+
     if attack_fx.timer.just_finished() {
         enemy_sprite.is_visible = true;
+        player_sprite.is_visible = true;
         if state.current() == &CombatState::PlayerAttack {
             state.set(CombatState::EnemyTurn(false)).unwrap()
         } else {
@@ -540,5 +553,13 @@ fn spawn_enemy(mut commands: Commands, ascii: Res<AsciiSheet>, characters: Res<C
 fn despawn_enemy(mut commands: Commands, enemy_query: Query<Entity, With<Enemy>>) {
     for entity in enemy_query.iter() {
         commands.entity(entity).despawn_recursive();
+    }
+}
+
+fn hide_player(
+    mut player_query: Query<&mut Visibility, With<Player>>
+) {
+    for mut visibility in player_query.iter_mut() {
+        visibility.is_visible = false;
     }
 }
