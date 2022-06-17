@@ -163,6 +163,7 @@ fn give_reward(
     ev_text_popup.send(CreateTextPopupEvent {
         text: reward_text,
         position: TextPopupPosition::Left,
+        duration: 2.5,
     });
 
     let levelup_percentage = player.exp as f32 / player.xp_required_for_current_level() as f32;
@@ -474,7 +475,7 @@ fn combat_input(
         _ => panic!("Bad menu selection"),
     };
 
-    if keyboard.just_pressed(KeyCode::Space) {
+    if keyboard.just_pressed(KeyCode::E) {
         match menu_state.selected {
             CombatMenuOption::Fight => {
                 let player_stats = player_query.single();

@@ -48,6 +48,7 @@ fn npc_speech(
                 ev_text_popup.send(CreateTextPopupEvent {
                     text,
                     position: TextPopupPosition::Center,
+                    duration: 3.0,
                 });
             }
         }

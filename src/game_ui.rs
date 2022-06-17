@@ -32,6 +32,7 @@ pub struct ExpBar;
 pub struct CreateTextPopupEvent {
     pub(crate) text: String,
     pub(crate) position: TextPopupPosition,
+    pub(crate) duration: f32,
 }
 
 impl Plugin for GameUiPlugin {
@@ -41,6 +42,7 @@ impl Plugin for GameUiPlugin {
             .add_system_set(
                 SystemSet::on_enter(GameState::Overworld)
                     .with_system(spawn_level_text)
+                    .with_system(show_help_initially)
                     .with_system(spawn_exp_bar),
             )
             .add_system_set(
@@ -48,8 +50,41 @@ impl Plugin for GameUiPlugin {
                     .with_system(handle_levelup_event)
                     .with_system(handle_exp_received_event),
             )
+            .add_system_set(
+                SystemSet::on_update(GameState::Overworld)
+                    .with_system(show_help_on_button_press),
+            )
             .add_system(handle_text_popup_event)
             .add_system(update_text_popups);
+    }
+}
+
+fn show_help_initially(ev_text_popup: EventWriter<CreateTextPopupEvent>) {
+    show_help(ev_text_popup);
+}
+
+fn show_help(mut ev_text_popup: EventWriter<CreateTextPopupEvent>) {
+    let text = r"Controls:
+  WASD: movement
+  Esc: go to menu
+  Up, Down, M: volume control
+  Num+, Num-, Home: camera control
+  E: interact
+  A, D: select option
+  H: show help".to_string();
+    ev_text_popup.send(CreateTextPopupEvent {
+        text,
+        position: TextPopupPosition::Left,
+        duration: 5.0,
+    });
+}
+
+fn show_help_on_button_press(
+    ev_text_popup: EventWriter<CreateTextPopupEvent>,
+    keyboard: Res<Input<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::H) {
+        show_help(ev_text_popup);
     }
 }
 
@@ -92,6 +127,7 @@ fn handle_text_popup_event(
             &ui_assets,
             event.text.as_str(),
             event.position,
+            event.duration,
         );
     }
 }
@@ -191,6 +227,7 @@ pub fn create_text_popup(
     ui_assets: &UiAssets,
     text: &str,
     position: TextPopupPosition,
+    duration: f32,
 ) {
     let text_style = TextStyle {
         font: ui_assets.font.clone(),
@@ -241,7 +278,7 @@ pub fn create_text_popup(
                 })
                 .insert(Name::new("TextPopup"))
                 .insert(TextPopup {
-                    timer: Timer::from_seconds(3.0, false),
+                    timer: Timer::from_seconds(duration, false),
                     when_start_fading: 0.3,
                 });
         });
