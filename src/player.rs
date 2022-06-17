@@ -7,6 +7,7 @@ use crate::{GameState, TILE_SIZE};
 use bevy::prelude::*;
 use bevy::sprite::collide_aabb::collide;
 use bevy_inspector_egui::Inspectable;
+use rand::{Rng, thread_rng};
 
 pub struct PlayerPlugin;
 
@@ -24,7 +25,8 @@ pub struct Player {
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
 pub struct EncounterTracker {
-    timer: Timer,
+    /// Average time required to spawn an encounter
+    avg_time: f32,
 }
 
 #[derive(Inspectable)]
@@ -135,12 +137,12 @@ fn show_player(
 
 fn player_encounter_checking(
     mut commands: Commands,
-    mut player_query: Query<(&mut Player, &mut EncounterTracker, &Transform)>,
+    mut player_query: Query<(&mut Player, &EncounterTracker, &Transform)>,
     encounter_query: Query<&Transform, (With<EncounterSpawner>, Without<Player>)>,
     ascii: Res<AsciiSheet>,
     time: Res<Time>,
 ) {
-    let (mut player, mut encounter_tracker, player_transform) = player_query.single_mut();
+    let (mut player, encounter_tracker, player_transform) = player_query.single_mut();
     let player_translation = player_transform.translation;
 
     if player.just_moved
@@ -149,9 +151,9 @@ fn player_encounter_checking(
             .any(|&transform| wall_collision_check(player_translation, transform.translation))
     {
         player.walked_ground_type = WalkedGroundType::Grass;
-        encounter_tracker.timer.tick(time.delta());
 
-        if encounter_tracker.timer.just_finished() {
+        let mut rng = thread_rng();
+        if rng.gen::<f32>() * encounter_tracker.avg_time < time.delta_seconds() {
             player.active = false;
             create_fadeout(&mut commands, Some(GameState::Combat), &ascii);
         }
@@ -257,6 +259,6 @@ fn spawn_player(mut commands: Commands, characters: Res<CharacterSheet>) {
             defense: 1,
         })
         .insert(EncounterTracker {
-            timer: Timer::from_seconds(1.0, true),
+            avg_time: 1.2,
         });
 }
