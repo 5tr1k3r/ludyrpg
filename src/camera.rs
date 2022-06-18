@@ -8,6 +8,7 @@ use rand::{thread_rng, Rng};
 pub struct CameraPlugin;
 
 pub struct OverworldCameraData {
+    translation: Vec3,
     scale: Vec3,
 }
 
@@ -16,10 +17,14 @@ const SHAKE_MAX_ANGLE: f32 = 15.0;
 const SHAKE_MAX_OFFSET: f32 = 0.2;
 const GAME_OVER_ZOOM_STEP: f32 = 0.3;
 const GAME_OVER_ZOOM_THRESHOLD: f32 = 0.3;
+const CAMERA_SMOOTHNESS: f32 = 0.05;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(OverworldCameraData { scale: Vec3::ONE })
+        app.insert_resource(OverworldCameraData {
+            translation: Vec3::ZERO,
+            scale: Vec3::ONE,
+        })
             .add_system_set(SystemSet::on_enter(GameState::Overworld).with_system(spawn_camera))
             .add_system_set(
                 SystemSet::on_update(GameState::Overworld)
@@ -49,8 +54,10 @@ fn camera_movement(
     let player_transform = player_query.single();
     let mut camera_transform = camera_query.single_mut();
 
-    camera_transform.translation.x = player_transform.translation.x;
-    camera_transform.translation.y = player_transform.translation.y;
+    camera_transform.translation.x +=
+        (player_transform.translation.x - camera_transform.translation.x) * CAMERA_SMOOTHNESS;
+    camera_transform.translation.y +=
+        (player_transform.translation.y - camera_transform.translation.y) * CAMERA_SMOOTHNESS;
 
     if keyboard.pressed(KeyCode::NumpadAdd) {
         let step = CAMERA_STEP * time.delta_seconds();
@@ -73,6 +80,7 @@ fn save_and_reset_camera_scale(
 ) {
     let mut camera_transform = camera_query.single_mut();
     overworld_camera_data.scale = camera_transform.scale;
+    overworld_camera_data.translation = camera_transform.translation;
     camera_transform.scale = Vec3::ONE;
 }
 
@@ -82,6 +90,7 @@ fn restore_camera_scale(
 ) {
     let mut camera_transform = camera_query.single_mut();
     camera_transform.scale = overworld_camera_data.scale;
+    camera_transform.translation = overworld_camera_data.translation;
 }
 
 fn shake_camera_based_on_trauma(
